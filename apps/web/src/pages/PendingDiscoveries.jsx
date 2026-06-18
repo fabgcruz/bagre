@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Inbox,
@@ -45,6 +45,21 @@ function formatDate(iso) {
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+// Sugere um nome de subnet a partir do CIDR (ex: "10.230.1.0/24" → "LAN-10.230.1").
+function deriveSubnetName(cidr) {
+  if (!cidr) return '';
+  const network = String(cidr).split('/')[0];
+  const octets = network.split('.');
+  if (octets.length === 4) return `LAN-${octets.slice(0, 3).join('.')}`;
+  return `LAN-${network}`;
+}
+
+// Retorna o valor único de um campo num grupo de descobertas, ou null se divergir.
+function sharedField(list, field) {
+  const values = new Set(list.map((d) => d[field]));
+  return values.size === 1 ? Array.from(values)[0] : null;
+}
+
 export default function PendingDiscoveries() {
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN';
@@ -54,7 +69,7 @@ export default function PendingDiscoveries() {
   const [q, setQ] = useState('');
   const [subnetFilter, setSubnetFilter] = useState('');
   const [selected, setSelected] = useState(() => new Set());
-  const [approveModal, setApproveModal] = useState({ open: false, ids: [], suggested: null });
+  const [approveModal, setApproveModal] = useState({ open: false, ids: [], suggested: null, suggestedCode: null });
   const [rejectModal, setRejectModal] = useState({ open: false, id: null });
   const [err, setErr] = useState(null);
 
@@ -202,11 +217,11 @@ export default function PendingDiscoveries() {
               setErr(null);
               const ids = Array.from(selected);
               const subset = discoveries.filter((d) => selected.has(d.id));
-              const cidrs = new Set(subset.map((d) => d.suggestedSubnetCidr));
               setApproveModal({
                 open: true,
                 ids,
-                suggested: cidrs.size === 1 ? Array.from(cidrs)[0] : null,
+                suggested: sharedField(subset, 'suggestedSubnetCidr'),
+                suggestedCode: sharedField(subset, 'suggestedSiteCode'),
               });
             }}
             className="btn-primary text-xs py-1.5"
@@ -254,6 +269,7 @@ export default function PendingDiscoveries() {
                           open: true,
                           ids: group.map((d) => d.id),
                           suggested: cidr,
+                          suggestedCode: sharedField(group, 'suggestedSiteCode'),
                         });
                       }}
                       className="btn-primary text-xs py-1"
@@ -270,7 +286,12 @@ export default function PendingDiscoveries() {
                 onToggle={toggleSelect}
                 onApprove={(d) => {
                   setErr(null);
-                  setApproveModal({ open: true, ids: [d.id], suggested: d.suggestedSubnetCidr });
+                  setApproveModal({
+                    open: true,
+                    ids: [d.id],
+                    suggested: d.suggestedSubnetCidr,
+                    suggestedCode: d.suggestedSiteCode,
+                  });
                 }}
                 onReject={(d) => setRejectModal({ open: true, id: d.id })}
               />
@@ -298,11 +319,12 @@ export default function PendingDiscoveries() {
         open={approveModal.open}
         ids={approveModal.ids}
         suggestedCidr={approveModal.suggested}
+        suggestedSiteCode={approveModal.suggestedCode}
         sites={sites}
         loading={approveMut.isPending || bulkMut.isPending}
         error={err}
         onClose={() => {
-          setApproveModal({ open: false, ids: [], suggested: null });
+          setApproveModal({ open: false, ids: [], suggested: null, suggestedCode: null });
           setErr(null);
         }}
         onSubmit={(payload) => {
@@ -311,7 +333,7 @@ export default function PendingDiscoveries() {
               { id: approveModal.ids[0], payload },
               {
                 onSuccess: () => {
-                  setApproveModal({ open: false, ids: [], suggested: null });
+                  setApproveModal({ open: false, ids: [], suggested: null, suggestedCode: null });
                   setSelected(new Set());
                 },
                 onError: (e) => setErr(e.message),
@@ -322,7 +344,7 @@ export default function PendingDiscoveries() {
               { ids: approveModal.ids, ...payload },
               {
                 onSuccess: () => {
-                  setApproveModal({ open: false, ids: [], suggested: null });
+                  setApproveModal({ open: false, ids: [], suggested: null, suggestedCode: null });
                   setSelected(new Set());
                 },
                 onError: (e) => setErr(e.message),
@@ -431,24 +453,27 @@ function DiscoveryTable({ rows, canEdit, selected, onToggle, onApprove, onReject
   );
 }
 
-function ApproveModal({ open, ids, suggestedCidr, sites, loading, error, onClose, onSubmit }) {
+function ApproveModal({ open, ids, suggestedCidr, suggestedSiteCode, sites, loading, error, onClose, onSubmit }) {
   const [mode, setMode] = useState('new');
   const [subnetId, setSubnetId] = useState('');
   const [newSubnet, setNewSubnet] = useState({ siteId: '', name: '', cidr: '', vlanId: '' });
 
-  // Reset ao abrir
-  useState(() => {
-    if (open) {
-      setMode(suggestedCidr ? 'new' : 'existing');
-      setSubnetId('');
-      setNewSubnet({
-        siteId: '',
-        name: suggestedCidr ? `Auto · ${suggestedCidr}` : '',
-        cidr: suggestedCidr || '',
-        vlanId: '',
-      });
-    }
-  }, [open, suggestedCidr]);
+  // Pré-preenche os campos toda vez que o modal abre, a partir dos dados da
+  // descoberta (CIDR, site e nome sugeridos). Campos seguem editáveis.
+  useEffect(() => {
+    if (!open) return;
+    const matchedSite = suggestedSiteCode
+      ? sites.find((s) => s.code === suggestedSiteCode)
+      : null;
+    setMode(suggestedCidr ? 'new' : 'existing');
+    setSubnetId('');
+    setNewSubnet({
+      siteId: matchedSite ? String(matchedSite.id) : '',
+      name: deriveSubnetName(suggestedCidr),
+      cidr: suggestedCidr || '',
+      vlanId: '',
+    });
+  }, [open, suggestedCidr, suggestedSiteCode, sites]);
 
   // Buscar subnets pra modo "existente"
   const allSubnets = sites.flatMap((s) =>
@@ -569,7 +594,7 @@ function ApproveModal({ open, ids, suggestedCidr, sites, loading, error, onClose
             <div className="col-span-2 text-xs text-slate-500 -mt-1">
               {suggestedCidr && (
                 <>
-                  💡 CIDR sugerido pela heurística: <code>{suggestedCidr}</code>
+                  💡 Campos pré-preenchidos a partir da descoberta — ajuste se precisar.
                 </>
               )}
             </div>
