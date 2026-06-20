@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Pencil, Trash2, ExternalLink, Server } from 'lucide-react';
-import { api } from '../api.js';
+import { api, demoTryWrite } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import CatalogFormModal from '../components/CatalogFormModal.jsx';
@@ -94,6 +94,7 @@ export default function Devices() {
           canEdit && (
             <button
               onClick={() => {
+                if (demoTryWrite()) return;
                 setErr(null);
                 setModal({ open: true, initial: null });
               }}
@@ -204,6 +205,7 @@ export default function Devices() {
                   >
                     <button
                       onClick={() => {
+                        if (demoTryWrite()) return;
                         setErr(null);
                         setModal({ open: true, initial: d });
                       }}
@@ -213,7 +215,10 @@ export default function Devices() {
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => setConfirm({ open: true, device: d })}
+                      onClick={() => {
+                        if (demoTryWrite()) return;
+                        setConfirm({ open: true, device: d });
+                      }}
                       className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 ml-1"
                       title="Excluir (libera IPs vinculados)"
                     >
@@ -308,7 +313,13 @@ function DeviceDetailModal({ deviceId, onClose, canEdit, onEdit }) {
               </div>
               <div className="flex gap-2">
                 {canEdit && (
-                  <button onClick={() => onEdit(data)} className="btn-ghost text-xs">
+                  <button
+                    onClick={() => {
+                      if (demoTryWrite()) return;
+                      onEdit(data);
+                    }}
+                    className="btn-ghost text-xs"
+                  >
                     <Pencil size={13} /> Editar
                   </button>
                 )}

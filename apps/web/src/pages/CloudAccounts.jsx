@@ -18,7 +18,7 @@ import {
   KeyRound,
   ShieldCheck,
 } from 'lucide-react';
-import { api } from '../api.js';
+import { api, demoTryWrite } from '../api.js';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -323,7 +323,7 @@ function AccountCard({ account, onSync, onTest, onDelete, syncing }) {
         </button>
         <div className="flex-1" />
         <button
-          onClick={() => onDelete(account.id, account.displayName)}
+          onClick={() => { if (demoTryWrite()) return; onDelete(account.id, account.displayName); }}
           className="text-xs px-2 py-1.5 rounded text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 inline-flex items-center gap-1"
         >
           <Trash2 size={12} />
@@ -744,7 +744,7 @@ export default function CloudAccounts() {
         title="Cloud Accounts"
         description="Conecte AWS / Azure / GCP e o Bagre importa subnets e IPs automaticamente. Use a auditoria abaixo para identificar IPs públicos ociosos e decidir o que pode ser liberado."
         actions={
-          <button onClick={() => setAddOpen(true)} className="btn-primary inline-flex items-center gap-1.5">
+          <button onClick={() => { if (demoTryWrite()) return; setAddOpen(true); }} className="btn-primary inline-flex items-center gap-1.5">
             <Plus size={14} />
             Conectar conta
           </button>
@@ -761,7 +761,7 @@ export default function CloudAccounts() {
           <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">
             Conecte sua AWS em menos de 2 minutos. Cria-se um IAM User (ou Role) com permissão read-only, cola credenciais aqui — o Bagre testa e sincroniza na hora.
           </p>
-          <button onClick={() => setAddOpen(true)} className="btn-primary inline-flex items-center gap-1.5">
+          <button onClick={() => { if (demoTryWrite()) return; setAddOpen(true); }} className="btn-primary inline-flex items-center gap-1.5">
             <Plus size={14} />
             Conectar primeira conta
           </button>

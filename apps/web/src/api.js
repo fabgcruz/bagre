@@ -26,6 +26,22 @@ export function setDemoBlockHandler(fn) {
 }
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+// Guard para ações com INTENÇÃO de escrita que NÃO são chamadas de API por si só
+// — abrir um modal de criar/editar, ou um fluxo de excluir com confirmação. No
+// demo, mostra o aviso na hora e devolve true (= bloqueado), pra UI abortar antes
+// de abrir o formulário. Fora do demo devolve false (segue normal).
+// Uso típico:  onClick={() => { if (demoTryWrite()) return; abrirModal(); }}
+export function demoTryWrite() {
+  if (demoMode) {
+    onDemoBlock();
+    return true;
+  }
+  return false;
+}
+export function isDemoMode() {
+  return demoMode;
+}
+
 async function request(path, opts = {}) {
   const method = (opts.method || 'GET').toUpperCase();
   // Login é o único write permitido na demo (é como o visitante entra).

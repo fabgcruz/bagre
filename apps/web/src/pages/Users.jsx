@@ -10,7 +10,7 @@ import {
   Copy,
   CheckCircle2,
 } from 'lucide-react';
-import { api } from '../api.js';
+import { api, demoTryWrite } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 
@@ -61,7 +61,7 @@ export default function Users() {
         title="Usuários"
         description="ADMIN pode editar tudo (incluindo criar usuários). READER só consulta. Ao criar uma conta sem senha, geramos um link único de definição."
         actions={
-          <button onClick={() => setShowCreate(true)} className="btn-primary">
+          <button onClick={() => { if (demoTryWrite()) return; setShowCreate(true); }} className="btn-primary">
             <UserPlus size={14} /> Novo usuário
           </button>
         }
@@ -140,6 +140,7 @@ export default function Users() {
                   </button>
                   <button
                     onClick={() => {
+                      if (demoTryWrite()) return;
                       if (confirm(`Remover ${u.email}?`)) remove.mutate(u.id);
                     }}
                     disabled={u.id === me?.id}

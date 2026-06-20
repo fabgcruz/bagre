@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Shield, AlertTriangle, AlertCircle } from 'lucide-react';
-import { api } from '../api.js';
+import { api, demoTryWrite } from '../api.js';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
@@ -57,7 +57,7 @@ export default function ValidationRules() {
         title="Regras de validação"
         description="Regras rodam antes de criar ou alterar uma subnet. Erros bloqueiam; warnings só avisam."
         actions={
-          <button onClick={() => setModal({ open: true, rule: null })} className="btn-primary inline-flex items-center gap-1.5">
+          <button onClick={() => { if (demoTryWrite()) return; setModal({ open: true, rule: null }); }} className="btn-primary inline-flex items-center gap-1.5">
             <Plus size={14} /> Nova regra
           </button>
         }
@@ -89,7 +89,7 @@ export default function ValidationRules() {
           <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">
             Sem regras, qualquer ADMIN pode criar qualquer subnet sem checks. Adicione pelo menos uma <strong>no-overlap</strong> pra evitar conflitos acidentais.
           </p>
-          <button onClick={() => setModal({ open: true, rule: null })} className="btn-primary inline-flex items-center gap-1.5">
+          <button onClick={() => { if (demoTryWrite()) return; setModal({ open: true, rule: null }); }} className="btn-primary inline-flex items-center gap-1.5">
             <Plus size={14} /> Adicionar primeira regra
           </button>
 
@@ -144,8 +144,8 @@ export default function ValidationRules() {
                     <td className="px-3 py-2 text-xs text-slate-500">{r.scope || 'global'}</td>
                     <td className="px-3 py-2 text-[11px] font-mono text-slate-600">{JSON.stringify(r.config)}</td>
                     <td className="px-3 py-2 text-right whitespace-nowrap">
-                      <button onClick={() => setModal({ open: true, rule: r })} className="text-slate-400 hover:text-brand-600 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" title="Editar"><Pencil size={14} /></button>
-                      <button onClick={() => setConfirm({ open: true, id: r.id, label: r.name })} className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 ml-1" title="Excluir"><Trash2 size={14} /></button>
+                      <button onClick={() => { if (demoTryWrite()) return; setModal({ open: true, rule: r }); }} className="text-slate-400 hover:text-brand-600 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" title="Editar"><Pencil size={14} /></button>
+                      <button onClick={() => { if (demoTryWrite()) return; setConfirm({ open: true, id: r.id, label: r.name }); }} className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 ml-1" title="Excluir"><Trash2 size={14} /></button>
                     </td>
                   </tr>
                 );

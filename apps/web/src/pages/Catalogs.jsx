@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Cloud, RefreshCw, ExternalLink } from 'lucide-react';
-import { api } from '../api.js';
+import { api, demoTryWrite } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import CatalogFormModal from '../components/CatalogFormModal.jsx';
@@ -244,7 +244,7 @@ function MasterRanges({ canEdit }) {
 
   return (
     <div>
-      <Toolbar canEdit={canEdit} label="Novo range mestre" onNew={() => { setErr(null); setModal({ open: true, initial: null }); }} />
+      <Toolbar canEdit={canEdit} label="Novo range mestre" onNew={() => { if (demoTryWrite()) return; setErr(null); setModal({ open: true, initial: null }); }} />
       <div className="card overflow-hidden">
         <table className="w-full text-sm table-zebra">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase text-slate-500">
@@ -263,8 +263,8 @@ function MasterRanges({ canEdit }) {
                 <td className="px-3 py-1.5 text-slate-500">{r.category || '—'}</td>
                 <ActionCell
                   canEdit={canEdit}
-                  onEdit={() => { setErr(null); setModal({ open: true, initial: r }); }}
-                  onDelete={() => setConfirm({ open: true, id: r.id, label: r.cidr })}
+                  onEdit={() => { if (demoTryWrite()) return; setErr(null); setModal({ open: true, initial: r }); }}
+                  onDelete={() => { if (demoTryWrite()) return; setConfirm({ open: true, id: r.id, label: r.cidr }); }}
                 />
               </tr>
             ))}
@@ -321,7 +321,7 @@ function DatacenterVlans({ canEdit }) {
 
   return (
     <div>
-      <Toolbar canEdit={canEdit} label="Nova VLAN" onNew={() => { setErr(null); setModal({ open: true, initial: null }); }} />
+      <Toolbar canEdit={canEdit} label="Nova VLAN" onNew={() => { if (demoTryWrite()) return; setErr(null); setModal({ open: true, initial: null }); }} />
       <div className="card overflow-hidden">
         <table className="w-full text-sm table-zebra">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase text-slate-500">
@@ -346,8 +346,8 @@ function DatacenterVlans({ canEdit }) {
                 <td className="px-3 py-1.5 font-mono text-xs">{r.broadcast || '—'}</td>
                 <ActionCell
                   canEdit={canEdit}
-                  onEdit={() => { setErr(null); setModal({ open: true, initial: r }); }}
-                  onDelete={() => setConfirm({ open: true, id: r.id, label: r.name })}
+                  onEdit={() => { if (demoTryWrite()) return; setErr(null); setModal({ open: true, initial: r }); }}
+                  onDelete={() => { if (demoTryWrite()) return; setConfirm({ open: true, id: r.id, label: r.name }); }}
                 />
               </tr>
             ))}

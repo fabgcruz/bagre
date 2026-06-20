@@ -9,7 +9,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react';
-import { api } from '../api.js';
+import { api, demoTryWrite } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import SiteFormModal from '../components/SiteFormModal.jsx';
@@ -186,6 +186,7 @@ export default function Sites() {
           canEdit && (
             <button
               onClick={() => {
+                if (demoTryWrite()) return;
                 setFormError(null);
                 setSiteModal({ open: true, initial: null });
               }}
@@ -238,6 +239,7 @@ export default function Sites() {
                           label: 'Nova subnet',
                           icon: <Plus size={14} />,
                           onClick: () => {
+                            if (demoTryWrite()) return;
                             setFormError(null);
                             setSubnetModal({
                               open: true,
@@ -251,6 +253,7 @@ export default function Sites() {
                           label: 'Editar site',
                           icon: <Pencil size={14} />,
                           onClick: () => {
+                            if (demoTryWrite()) return;
                             setFormError(null);
                             setSiteModal({ open: true, initial: site });
                           },
@@ -259,14 +262,16 @@ export default function Sites() {
                           label: 'Excluir site',
                           icon: <Trash2 size={14} />,
                           danger: true,
-                          onClick: () =>
+                          onClick: () => {
+                            if (demoTryWrite()) return;
                             setConfirm({
                               type: 'site',
                               id: site.id,
                               code: site.code,
                               subnetCount: site.subnets.length,
                               ipCount: total,
-                            }),
+                            });
+                          },
                         },
                       ]}
                     />
@@ -323,6 +328,7 @@ export default function Sites() {
                                 label: 'Editar subnet',
                                 icon: <Pencil size={14} />,
                                 onClick: () => {
+                                  if (demoTryWrite()) return;
                                   setFormError(null);
                                   setSubnetModal({
                                     open: true,
@@ -336,14 +342,16 @@ export default function Sites() {
                                 label: 'Excluir subnet',
                                 icon: <Trash2 size={14} />,
                                 danger: true,
-                                onClick: () =>
+                                onClick: () => {
+                                  if (demoTryWrite()) return;
                                   setConfirm({
                                     type: 'subnet',
                                     id: sub.id,
                                     name: sub.name,
                                     siteCode: site.code,
                                     ipCount: sub.ipCount,
-                                  }),
+                                  });
+                                },
                               },
                             ]}
                           />
@@ -354,6 +362,7 @@ export default function Sites() {
                   {canEdit && site.subnets.length === 0 && (
                     <button
                       onClick={() => {
+                        if (demoTryWrite()) return;
                         setFormError(null);
                         setSubnetModal({
                           open: true,

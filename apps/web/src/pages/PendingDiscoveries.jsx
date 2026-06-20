@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
-import { api } from '../api.js';
+import { api, demoTryWrite } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
@@ -199,6 +199,7 @@ export default function PendingDiscoveries() {
           </div>
           <button
             onClick={() => {
+              if (demoTryWrite()) return;
               setErr(null);
               const ids = Array.from(selected);
               const subset = discoveries.filter((d) => selected.has(d.id));
@@ -251,6 +252,7 @@ export default function PendingDiscoveries() {
                     </button>
                     <button
                       onClick={() => {
+                        if (demoTryWrite()) return;
                         setErr(null);
                         setApproveModal({
                           open: true,
@@ -275,6 +277,7 @@ export default function PendingDiscoveries() {
                 selected={selected}
                 onToggle={toggleSelect}
                 onApprove={(d) => {
+                  if (demoTryWrite()) return;
                   setErr(null);
                   setApproveModal({
                     open: true,
@@ -283,7 +286,10 @@ export default function PendingDiscoveries() {
                     suggestedSite: d.suggestedSiteCode || null,
                   });
                 }}
-                onReject={(d) => setRejectModal({ open: true, id: d.id })}
+                onReject={(d) => {
+                  if (demoTryWrite()) return;
+                  setRejectModal({ open: true, id: d.id });
+                }}
               />
             </div>
           ))}

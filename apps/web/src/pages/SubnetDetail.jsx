@@ -15,7 +15,7 @@ import {
   Edit3,
   Trash2,
 } from 'lucide-react';
-import { api } from '../api.js';
+import { api, demoTryWrite } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -40,7 +40,10 @@ function EditableCell({ value, onSave, placeholder = '—', disabled }) {
   if (!editing) {
     return (
       <button
-        onClick={() => setEditing(true)}
+        onClick={() => {
+          if (demoTryWrite()) return;
+          setEditing(true);
+        }}
         title="Clique para editar"
         className="w-full text-left px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 truncate"
       >
@@ -203,6 +206,7 @@ export default function SubnetDetail() {
   });
 
   async function openNextFreeAllocate() {
+    if (demoTryWrite()) return;
     try {
       const next = await api.subnetNextFreeIp(subnetId);
       setAllocateError(null);
@@ -445,6 +449,7 @@ export default function SubnetDetail() {
                     {(ip.status === 'FREE' || ip.status === 'RESERVED') && (
                       <button
                         onClick={() => {
+                          if (demoTryWrite()) return;
                           setAllocateError(null);
                           setAllocateModal({ open: true, ip });
                         }}
@@ -507,7 +512,10 @@ export default function SubnetDetail() {
           onReserve={() => {
             bulkMut.mutate({ ipIds: Array.from(selected), action: 'reserve' });
           }}
-          onEdit={() => setBulkEditOpen(true)}
+          onEdit={() => {
+            if (demoTryWrite()) return;
+            setBulkEditOpen(true);
+          }}
         />
       )}
 
