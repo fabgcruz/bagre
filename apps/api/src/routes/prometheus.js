@@ -6,6 +6,7 @@ import {
   testConnection,
   syncFromPrometheus,
 } from '../integrations/prometheus.js';
+import { redactForDemo } from '../demo-guard.js';
 
 const SAFE_FIELDS = [
   'enabled',
@@ -19,20 +20,20 @@ const SAFE_FIELDS = [
   'staleAfterDays',
 ];
 
-function maskSecret(s) {
-  if (!s) return s;
-  return '••••••••' + String(s).slice(-4);
-}
+// Placeholder fixo — NUNCA revelar parte do segredo. O front usa hasBearerToken/hasBasicPassword.
+const MASK = '••••••••';
 
 function safeView(cfg) {
   if (!cfg) return cfg;
-  return {
+  const view = {
     ...cfg,
-    bearerToken: cfg.bearerToken ? maskSecret(cfg.bearerToken) : null,
-    basicPassword: cfg.basicPassword ? maskSecret(cfg.basicPassword) : null,
+    bearerToken: cfg.bearerToken ? MASK : null,
+    basicPassword: cfg.basicPassword ? MASK : null,
     hasBearerToken: !!cfg.bearerToken,
     hasBasicPassword: !!cfg.basicPassword,
   };
+  // Na demo, o "admin" é anônimo: não vazar host/usuário internos.
+  return redactForDemo(view, ['url', 'basicUsername']);
 }
 
 export async function registerPrometheusRoutes(app) {

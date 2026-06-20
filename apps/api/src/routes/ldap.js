@@ -6,12 +6,18 @@ import { prisma } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { auditFromReq } from '../audit.js';
 import { getConfig, isConfigured, testConnection } from '../auth-providers/ldap.js';
+import { redactForDemo } from '../demo-guard.js';
 
 // Nunca devolve a senha do service account crua pra UI.
+// Na demo, o "admin" é um visitante anônimo: também oculta a topologia interna
+// (url do diretório, DN do service account, baseDn) — só vaza atributos genéricos.
 function maskSecret(cfg) {
   if (!cfg) return cfg;
   const { bindPassword, ...rest } = cfg;
-  return { ...rest, hasBindPassword: !!bindPassword };
+  return redactForDemo(
+    { ...rest, hasBindPassword: !!bindPassword },
+    ['url', 'bindDn', 'baseDn'],
+  );
 }
 
 export async function registerLdapRoutes(app) {

@@ -14,6 +14,9 @@ services:
   api:
     environment:
       DEMO_MODE: "true"
+      # Login é o ÚNICO write exposto na demo → teto de brute-force bem apertado
+      # (12 tentativas / 5min / IP). Em produção o default é 30 (NAT-friendly).
+      LOGIN_RATE_MAX: "12"
       DEMO_ADMIN_EMAIL: ${DEMO_ADMIN_EMAIL:-demo-admin@bagre.dev}
       DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-demo-admin}
       DEMO_READER_EMAIL: ${DEMO_READER_EMAIL:-demo-reader@bagre.dev}

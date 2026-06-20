@@ -8,8 +8,13 @@ import * as ldapProvider from '../auth-providers/ldap.js';
 const TOKEN_TTL_MIN = 60 * 60 * 8; // 8h
 
 // Proteção contra brute force nos endpoints de auth (por IP, janela de 5min).
-// Thresholds generosos pra não atrapalhar uso legítimo nem o login 1-clique da demo.
-const loginLimit = rateLimit({ name: 'login', windowMs: 5 * 60_000, max: 50 });
+// O teto do login é configurável via LOGIN_RATE_MAX: mantemos um default
+// folgado o bastante pra um escritório atrás de NAT (vários usuários, mesmo IP),
+// mas o ambiente de demonstração público fixa um valor BEM mais apertado
+// (LOGIN_RATE_MAX=12 no docker-compose.demo.yml) — lá o login é o único write
+// exposto, então é a superfície que mais precisa ser blindada.
+const LOGIN_MAX = Math.max(3, Number(process.env.LOGIN_RATE_MAX) || 30);
+const loginLimit = rateLimit({ name: 'login', windowMs: 5 * 60_000, max: LOGIN_MAX });
 const signupLimit = rateLimit({ name: 'signup', windowMs: 5 * 60_000, max: 20 });
 const resetLimit = rateLimit({ name: 'reset', windowMs: 5 * 60_000, max: 20 });
 

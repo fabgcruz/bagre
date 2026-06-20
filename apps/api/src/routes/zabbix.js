@@ -7,7 +7,7 @@ import {
   syncFromZabbix,
   invalidateSession,
 } from '../integrations/zabbix.js';
-import { stripDemoPinned } from '../demo-guard.js';
+import { stripDemoPinned, redactForDemo } from '../demo-guard.js';
 
 const SAFE_FIELDS = [
   'enabled',
@@ -20,20 +20,21 @@ const SAFE_FIELDS = [
   'staleAfterDays',
 ];
 
-function maskSecret(s) {
-  if (!s) return s;
-  return '••••••••' + String(s).slice(-4);
-}
+// Placeholder fixo — NUNCA revelar parte do segredo (nem o sufixo). O front
+// usa hasApiToken/hasPassword pra saber se há valor configurado.
+const MASK = '••••••••';
 
 function safeView(cfg) {
   if (!cfg) return cfg;
-  return {
+  const view = {
     ...cfg,
-    apiToken: cfg.apiToken ? maskSecret(cfg.apiToken) : null,
-    password: cfg.password ? maskSecret(cfg.password) : null,
+    apiToken: cfg.apiToken ? MASK : null,
+    password: cfg.password ? MASK : null,
     hasApiToken: !!cfg.apiToken,
     hasPassword: !!cfg.password,
   };
+  // Na demo, o "admin" é anônimo: não vazar host/usuário internos.
+  return redactForDemo(view, ['url', 'username']);
 }
 
 export async function registerZabbixRoutes(app) {

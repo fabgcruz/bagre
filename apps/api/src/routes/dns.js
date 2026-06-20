@@ -6,6 +6,7 @@ import { prisma } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { auditFromReq } from '../audit.js';
 import * as powerdns from '../integrations/dns/powerdns.js';
+import { redactForDemo } from '../demo-guard.js';
 
 const PROVIDERS = { powerdns };
 
@@ -19,18 +20,18 @@ const SAFE_FIELDS = [
   'intervalMinutes',
 ];
 
-function maskSecret(s) {
-  if (!s) return s;
-  return '••••••••' + String(s).slice(-4);
-}
+// Placeholder fixo — NUNCA revelar parte do segredo. O front usa hasApiKey.
+const MASK = '••••••••';
 
 function safeView(cfg) {
   if (!cfg) return cfg;
-  return {
+  const view = {
     ...cfg,
-    apiKey: cfg.apiKey ? maskSecret(cfg.apiKey) : null,
+    apiKey: cfg.apiKey ? MASK : null,
     hasApiKey: !!cfg.apiKey,
   };
+  // Na demo, o "admin" é anônimo: não vazar a URL interna do servidor DNS.
+  return redactForDemo(view, ['baseUrl']);
 }
 
 async function getCfg() {

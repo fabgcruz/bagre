@@ -4,7 +4,7 @@
 import { prisma } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { audit, auditFromReq } from '../audit.js';
-import { DEMO } from '../demo-guard.js';
+import { DEMO, redactForDemo } from '../demo-guard.js';
 import {
   getConfig,
   isConfigured,
@@ -20,11 +20,14 @@ const FLOW_COOKIE = 'bagre_sso_flow';
 
 function maskSecret(cfg) {
   if (!cfg) return cfg;
-  return {
+  const view = {
     ...cfg,
-    clientSecret: cfg.clientSecret ? '••••••••' + cfg.clientSecret.slice(-4) : null,
+    // Placeholder fixo — NUNCA revelar parte do segredo (nem o sufixo).
+    clientSecret: cfg.clientSecret ? '••••••••' : null,
     hasClientSecret: !!cfg.clientSecret,
   };
+  // Na demo, o "admin" é anônimo: não vazar issuer/clientId do IdP.
+  return redactForDemo(view, ['issuer', 'clientId']);
 }
 
 export async function registerOidcRoutes(app) {
