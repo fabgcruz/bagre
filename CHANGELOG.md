@@ -24,6 +24,7 @@ Mudanças que estão em `main` e ainda não entraram em release oficial.
 - **Rate-limit** de login configurável (`LOGIN_RATE_MAX`; demo fixa 12/5min) e estendido a `/api/auth/reset` e `/change-password`.
 - **SSO callback:** a origem do redirect passa a vir de fonte server-side confiável (`APP_BASE_URL`/`redirectUri`), não dos headers do request, e o `next` é sanitizado — corrige open-redirect e vazamento de token na URL.
 - **Anti-SSRF nas integrações:** ao salvar a URL de Zabbix/Prometheus/PowerDNS, destinos **link-local/metadata** (`169.254.0.0/16`, `fd00:ec2::254`) são bloqueados; redes privadas internas continuam permitidas (`INTEGRATION_URL_STRICT=true` trava tudo).
+- **LDAPS pronto pra produção corporativa:** validação de certificado **ON por padrão**, com campo pra colar a **CA interna do AD (AD CS)** em PEM — valida o LDAPS sem desligar a checagem (ou via `NODE_EXTRA_CA_CERTS`). Toggle explícito (com aviso) pra relaxar validação em lab, e aviso quando se usa `ldap://` sem TLS. Autenticação AD validada de ponta a ponta contra um **Samba AD DC** (LDAPS com cert validado pela CA).
 
 ---
 

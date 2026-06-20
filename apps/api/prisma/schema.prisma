@@ -189,6 +189,10 @@ model LdapConfig {
   enabled         Boolean   @default(false)
   url             String? // ldap://host:389 ou ldaps://host:636
   startTls        Boolean   @default(false) // StartTLS em cima do ldap:// (alternativa ao ldaps://)
+  // TLS: validação ON por padrão (boa prática). caCert permite confiar na CA
+  // interna do AD (AD CS) SEM desligar a validação — o jeito seguro on-premise.
+  tlsRejectUnauthorized Boolean @default(true) // false = NÃO valida o cert (inseguro, só lab)
+  caCert          String? // PEM da CA que assina o cert do LDAPS (cert público, não é segredo)
   bindDn          String? // service account p/ buscar usuários (ex: CN=svc-bagre,OU=svc,DC=corp,DC=local)
   bindPassword    String? // senha do service account — nunca retornada crua à UI
   baseDn          String? // base de busca (ex: DC=corp,DC=local)

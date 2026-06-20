@@ -30,6 +30,8 @@ export async function registerLdapRoutes(app) {
       'enabled',
       'url',
       'startTls',
+      'tlsRejectUnauthorized',
+      'caCert',
       'bindDn',
       'baseDn',
       'userFilter',

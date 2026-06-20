@@ -32,14 +32,27 @@ function escapeFilter(value) {
   );
 }
 
+// Opções de TLS — usadas tanto em ldaps:// (no construtor) quanto no StartTLS.
+//  - rejectUnauthorized: valida o cert do servidor. ON por padrão (boa prática).
+//    Só vira false se o admin explicitamente desligar (lab/ins=eguro).
+//  - ca: confia numa CA específica (a CA interna do AD/AD CS) sem desligar a
+//    validação — é o caminho SEGURO pra LDAPS on-premise com cert de CA própria.
+//    O Node também aceita NODE_EXTRA_CA_CERTS como alternativa via env.
+function buildTlsOptions(cfg) {
+  const opts = { rejectUnauthorized: cfg.tlsRejectUnauthorized !== false };
+  if (cfg.caCert && String(cfg.caCert).trim()) {
+    opts.ca = [String(cfg.caCert)];
+  }
+  return opts;
+}
+
 function makeClient(cfg) {
   const opts = { url: cfg.url, timeout: 8000, connectTimeout: 8000 };
   // tlsOptions SÓ pra ldaps:// — passar em ldap:// faz o ldapts tentar um
   // handshake TLS que o servidor recusa ("socket disconnected before TLS").
-  // No StartTLS o cert é validado no client.startTLS() (ver withClient).
-  // Cert validado por padrão; AD com CA interna precisará fornecer a CA (futuro).
+  // No StartTLS o TLS é negociado no client.startTLS() (ver withClient).
   if ((cfg.url || '').startsWith('ldaps://')) {
-    opts.tlsOptions = { rejectUnauthorized: true };
+    opts.tlsOptions = buildTlsOptions(cfg);
   }
   return new Client(opts);
 }
@@ -47,7 +60,7 @@ function makeClient(cfg) {
 async function withClient(cfg, fn) {
   const client = makeClient(cfg);
   try {
-    if (cfg.startTls) await client.startTLS({ rejectUnauthorized: true });
+    if (cfg.startTls) await client.startTLS(buildTlsOptions(cfg));
     return await fn(client);
   } finally {
     try {

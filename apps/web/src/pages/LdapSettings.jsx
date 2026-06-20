@@ -29,6 +29,8 @@ export default function LdapSettings() {
         enabled: cfg.enabled,
         url: cfg.url || '',
         startTls: cfg.startTls ?? false,
+        tlsRejectUnauthorized: cfg.tlsRejectUnauthorized ?? true,
+        caCert: cfg.caCert || '',
         bindDn: cfg.bindDn || '',
         bindPassword: '',
         baseDn: cfg.baseDn || '',
@@ -84,6 +86,8 @@ export default function LdapSettings() {
     const data = {
       url: form.url.trim(),
       startTls: form.startTls,
+      tlsRejectUnauthorized: form.tlsRejectUnauthorized,
+      caCert: form.caCert.trim() || null,
       bindDn: form.bindDn.trim(),
       baseDn: form.baseDn.trim(),
       userFilter: form.userFilter.trim(),
@@ -169,6 +173,50 @@ export default function LdapSettings() {
               StartTLS (criptografa em cima do ldap://)
             </label>
           </Field>
+
+          {form.url.startsWith('ldap://') && !form.startTls && (
+            <p className="text-xs rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+              ⚠️ Sem TLS: a senha do usuário trafega em texto claro, e ADs modernos
+              recusam bind sem criptografia. Em produção use <code>ldaps://</code> (porta
+              636) ou marque StartTLS.
+            </p>
+          )}
+
+          {(form.url.startsWith('ldaps://') || form.startTls) && (
+            <>
+              <Field>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.tlsRejectUnauthorized}
+                    onChange={(e) =>
+                      setForm({ ...form, tlsRejectUnauthorized: e.target.checked })
+                    }
+                    className="accent-brand-600"
+                  />
+                  Validar o certificado do servidor (recomendado)
+                </label>
+                {!form.tlsRejectUnauthorized && (
+                  <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+                    ⚠️ Validação desligada — exposto a man-in-the-middle. Use só em
+                    laboratório; em produção, forneça a CA abaixo.
+                  </p>
+                )}
+              </Field>
+              <Field
+                label="Certificado da CA (PEM)"
+                hint="Cole a CA que assina o cert do LDAPS do seu AD (ex.: a CA raiz do AD CS). Necessário quando o cert não vem de uma CA pública — assim o LDAPS valida sem desligar a checagem. Alternativa: a env NODE_EXTRA_CA_CERTS no container da API."
+              >
+                <textarea
+                  rows={4}
+                  value={form.caCert}
+                  onChange={(e) => setForm({ ...form, caCert: e.target.value })}
+                  placeholder={'-----BEGIN CERTIFICATE-----\n…\n-----END CERTIFICATE-----'}
+                  className="input font-mono text-xs"
+                />
+              </Field>
+            </>
+          )}
           <Field
             label="Conta de serviço (bind DN)"
             hint="Conta de leitura usada para buscar usuários antes de validar a senha."

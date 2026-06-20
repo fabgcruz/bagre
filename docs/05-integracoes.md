@@ -223,6 +223,23 @@ Login com as credenciais do **Active Directory on-premise** (ou qualquer servido
 
 A partir daí, a tela de login aceita usuário+senha do domínio. (No demo público a config aparece preenchida como exemplo, com a senha mascarada.)
 
+### LDAPS em produção (criptografia + certificado)
+
+Em produção **não use `ldap://` puro** — a senha do usuário trafega em texto claro e **um AD endurecido recusa o bind sem criptografia** ("Strong(er) authentication required"). Use **`ldaps://` (porta 636)** ou marque **StartTLS**.
+
+O detalhe que trava a maioria: o LDAPS do AD on-premise costuma usar um **certificado emitido pela CA interna** (AD CS), que o Bagre (corretamente) **não confia por padrão**. Há duas formas seguras de resolver — **sem desligar a validação**:
+
+1. **Pela tela (recomendado):** com `ldaps://`/StartTLS selecionado, aparecem dois campos:
+   - **Validar o certificado do servidor** — deixe **marcado** (padrão).
+   - **Certificado da CA (PEM)** — cole a **CA raiz do seu AD CS** (o cert público que assina o cert do DC). Pronto: o LDAPS valida contra a sua CA.
+2. **Por variável de ambiente** (alternativa, útil em IaC): monte o PEM da CA no container da API e aponte `NODE_EXTRA_CA_CERTS=/certs/ad-ca.pem`. O Node passa a confiar nela em todo TLS.
+
+> **Desligar a validação** (`Validar certificado` desmarcado / `rejectUnauthorized=false`) existe só para **laboratório** — deixa a conexão vulnerável a man-in-the-middle. Em produção, forneça a CA.
+
+Validado de ponta a ponta contra um **Samba AD DC**: com a CA correta o LDAPS valida e autentica; **sem** a CA, a conexão é corretamente recusada (`unable to verify the first certificate`).
+
+> **Hostname:** a URL (`ldaps://dc1.corp.local:636`) precisa bater com o **CN/SAN** do certificado do DC. Use o FQDN do controlador, não o IP.
+
 ### Comportamento e precedência
 
 - **Precedência de login**: local → **LDAP** → OIDC. O login local e o SSO continuam funcionando em paralelo (**anti-lockout**: se o servidor LDAP cair, o admin local ainda entra).
@@ -244,6 +261,9 @@ A partir daí, a tela de login aceita usuário+senha do domínio. (No demo públ
 | Conecta mas todo login dá 401 | filtro de busca errado (ex.: `uid` num AD que usa `sAMAccountName`), ou Base DN não cobre os usuários |
 | Login OK mas usuário não vira ADMIN | DN do grupo em "Grupos ADMIN" não bate **exatamente** com o `memberOf` (compare o DN completo, case-insensitive) |
 | "socket disconnected before TLS" | usou `ldaps://` num servidor que só fala `ldap://` (ou vice-versa); confira porta 389 vs 636 e a opção StartTLS |
+| `unable to verify the first certificate` (LDAPS) | a CA interna do AD não é confiável pelo Bagre — cole a CA no campo **Certificado da CA (PEM)** (ou use `NODE_EXTRA_CA_CERTS`) |
+| `Strong(er) authentication required` / `Transport encryption required` | o AD recusa bind sem TLS — use `ldaps://` (636) ou StartTLS |
+| `ERR_TLS_CERT_ALTNAME_INVALID` | a URL não bate com o CN/SAN do cert — use o **FQDN** do DC, não o IP |
 
 ### Ambiente de testes local (sem AD real)
 
