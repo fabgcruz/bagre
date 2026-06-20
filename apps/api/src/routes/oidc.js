@@ -255,9 +255,45 @@ export async function registerOidcRoutes(app) {
 
     reply.clearCookie(FLOW_COOKIE, { path: '/api/auth/sso' });
 
-    // Redirect back to the SPA with the token. The SPA's /sso-callback page picks it up.
-    const next = encodeURIComponent(flow.next || '/');
-    const origin = req.headers.origin || `${req.protocol}://${req.headers.host}`.replace(/:3001$/, ':3000');
+    // Redirect back to the SPA com o token. A origem do redirect vem SEMPRE de
+    // fonte server-side confiável (env APP_BASE_URL ou a origem do redirectUri
+    // configurado) — NUNCA dos headers Origin/Host do request, senão um atacante
+    // entregaria o token recém-emitido numa origem arbitrária (open-redirect +
+    // vazamento de token). O `next` é sanitizado pra caminho local (anti
+    // open-redirect via //evil.com ou URL absoluta).
+    const origin = ssoFrontendOrigin(cfg, req);
+    const next = encodeURIComponent(safeNextPath(flow.next));
     reply.redirect(`${origin}/sso-callback?token=${token}&next=${next}`);
   });
+}
+
+// Origem do SPA pra onde devolver o token: só fontes confiáveis do servidor.
+function ssoFrontendOrigin(cfg, req) {
+  const fromEnv = process.env.APP_BASE_URL || process.env.PUBLIC_BASE_URL;
+  if (fromEnv) {
+    try {
+      return new URL(fromEnv).origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  if (cfg?.redirectUri) {
+    try {
+      return new URL(cfg.redirectUri).origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  // Fallback (dev): mesma origem do request. Em produção o redirectUri sempre
+  // existe (isConfigured exige), então este caminho não roda em deploy real.
+  return `${req.protocol}://${req.headers.host}`.replace(/:3001$/, ':3000');
+}
+
+// Só permite caminho local: começa com '/' e não com '//' (protocol-relative),
+// sem esquema. Qualquer outra coisa vira '/'.
+function safeNextPath(next) {
+  if (typeof next !== 'string') return '/';
+  if (!next.startsWith('/') || next.startsWith('//')) return '/';
+  if (next.includes('\\') || /^\/+\w+:/.test(next)) return '/';
+  return next;
 }

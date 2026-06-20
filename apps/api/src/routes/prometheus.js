@@ -7,6 +7,7 @@ import {
   syncFromPrometheus,
 } from '../integrations/prometheus.js';
 import { redactForDemo } from '../demo-guard.js';
+import { assertSafeIntegrationUrl } from '../lib/ssrf-guard.js';
 
 const SAFE_FIELDS = [
   'enabled',
@@ -42,7 +43,7 @@ export async function registerPrometheusRoutes(app) {
     return safeView(cfg);
   });
 
-  app.patch('/api/admin/prometheus-config', { preHandler: requireAdmin }, async (req) => {
+  app.patch('/api/admin/prometheus-config', { preHandler: requireAdmin }, async (req, reply) => {
     const body = req.body || {};
     const data = {};
     for (const f of SAFE_FIELDS) {
@@ -53,6 +54,15 @@ export async function registerPrometheusRoutes(app) {
     if (data.basicPassword && String(data.basicPassword).startsWith('••••')) delete data.basicPassword;
     if ('bearerToken' in data && data.bearerToken === '') data.bearerToken = null;
     if ('basicPassword' in data && data.basicPassword === '') data.basicPassword = null;
+    // Anti-SSRF: rejeita URL apontando pra metadata/link-local.
+    if (data.url) {
+      try {
+        await assertSafeIntegrationUrl(data.url);
+      } catch (e) {
+        reply.code(400);
+        return { error: `URL do Prometheus rejeitada: ${e.message}` };
+      }
+    }
     const before = await getConfig();
     const after = await prisma.prometheusConfig.update({ where: { id: 1 }, data });
     await auditFromReq(req, {

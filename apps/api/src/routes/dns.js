@@ -7,6 +7,7 @@ import { requireAdmin } from '../auth.js';
 import { auditFromReq } from '../audit.js';
 import * as powerdns from '../integrations/dns/powerdns.js';
 import { redactForDemo } from '../demo-guard.js';
+import { assertSafeIntegrationUrl } from '../lib/ssrf-guard.js';
 
 const PROVIDERS = { powerdns };
 
@@ -52,7 +53,7 @@ export async function registerDnsRoutes(app) {
     return safeView(cfg);
   });
 
-  app.patch('/api/admin/dns-config', { preHandler: requireAdmin }, async (req) => {
+  app.patch('/api/admin/dns-config', { preHandler: requireAdmin }, async (req, reply) => {
     const body = req.body || {};
     const data = {};
     for (const f of SAFE_FIELDS) {
@@ -60,6 +61,15 @@ export async function registerDnsRoutes(app) {
     }
     if (data.apiKey && String(data.apiKey).startsWith('••••')) delete data.apiKey;
     if ('apiKey' in data && data.apiKey === '') data.apiKey = null;
+    // Anti-SSRF: rejeita URL apontando pra metadata/link-local.
+    if (data.baseUrl) {
+      try {
+        await assertSafeIntegrationUrl(data.baseUrl);
+      } catch (e) {
+        reply.code(400);
+        return { error: `URL do PowerDNS rejeitada: ${e.message}` };
+      }
+    }
     const before = await getCfg();
     const after = await prisma.dnsConfig.update({ where: { id: 1 }, data });
     await auditFromReq(req, {

@@ -8,6 +8,7 @@ import {
   invalidateSession,
 } from '../integrations/zabbix.js';
 import { stripDemoPinned, redactForDemo } from '../demo-guard.js';
+import { assertSafeIntegrationUrl } from '../lib/ssrf-guard.js';
 
 const SAFE_FIELDS = [
   'enabled',
@@ -43,7 +44,7 @@ export async function registerZabbixRoutes(app) {
     return safeView(cfg);
   });
 
-  app.patch('/api/admin/zabbix-config', { preHandler: requireAdmin }, async (req) => {
+  app.patch('/api/admin/zabbix-config', { preHandler: requireAdmin }, async (req, reply) => {
     const body = req.body || {};
     const data = {};
     for (const f of SAFE_FIELDS) {
@@ -57,6 +58,15 @@ export async function registerZabbixRoutes(app) {
     // Na demo, o alvo do Zabbix fica fixado (anti-SSRF): o visitante pode
     // alternar enabled/intervalo, mas não repointar url/credenciais.
     stripDemoPinned(data, ['url', 'username', 'password', 'apiToken']);
+    // Anti-SSRF: rejeita URL apontando pra metadata/link-local.
+    if (data.url) {
+      try {
+        await assertSafeIntegrationUrl(data.url);
+      } catch (e) {
+        reply.code(400);
+        return { error: `URL do Zabbix rejeitada: ${e.message}` };
+      }
+    }
     const before = await getConfig();
     const after = await prisma.zabbixConfig.update({ where: { id: 1 }, data });
     invalidateSession();
