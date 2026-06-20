@@ -27,7 +27,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import GlobalSearch from './GlobalSearch.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
-import { api } from '../api.js';
+import { api, setDemoMode, setDemoBlockHandler } from '../api.js';
+import { useToast } from './Toast.jsx';
 
 const NAV_BASE = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -101,6 +102,20 @@ export default function Layout({ children }) {
   });
   const demoBanner = cfg?.demo?.enabled ? cfg.demo.banner : null;
   const isDemo = !!cfg?.demo?.enabled;
+  const toast = useToast();
+
+  // Liga a trava de escrita do cliente no modo demo + avisa ao tentar escrever.
+  useEffect(() => {
+    setDemoMode(isDemo);
+  }, [isDemo]);
+  useEffect(() => {
+    setDemoBlockHandler(() =>
+      toast.info('Ambiente de demonstração — somente leitura. Nada é alterado aqui.', {
+        title: 'Ação desabilitada',
+      }),
+    );
+    return () => setDemoBlockHandler(() => {});
+  }, [toast]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');

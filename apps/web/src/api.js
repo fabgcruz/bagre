@@ -12,7 +12,29 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
 
+// Trava de demonstração (somente-leitura). Ligada pelo Layout quando
+// /api/config diz demo.enabled. Defesa em profundidade: a API já bloqueia toda
+// escrita no DEMO_MODE; aqui barramos no cliente ANTES de enviar, pra nenhum
+// botão (atual ou futuro) conseguir apagar/alterar nada — e avisamos o usuário.
+let demoMode = false;
+export function setDemoMode(v) {
+  demoMode = !!v;
+}
+let onDemoBlock = () => {};
+export function setDemoBlockHandler(fn) {
+  onDemoBlock = fn;
+}
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
 async function request(path, opts = {}) {
+  const method = (opts.method || 'GET').toUpperCase();
+  // Login é o único write permitido na demo (é como o visitante entra).
+  if (demoMode && WRITE_METHODS.has(method) && path !== '/auth/login') {
+    onDemoBlock();
+    const err = new Error('Ambiente de demonstração: somente leitura.');
+    err.demoBlocked = true;
+    throw err;
+  }
   const headers = { ...(opts.headers || {}) };
   // Only set JSON content-type when there's actually a body to send.
   // Fastify rejects requests with content-type set but empty body.

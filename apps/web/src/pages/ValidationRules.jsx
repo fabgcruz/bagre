@@ -42,6 +42,11 @@ export default function ValidationRules() {
   const qc = useQueryClient();
   const toast = useToast();
   const { data: rules = [], isLoading } = useQuery({ queryKey: ['validation-rules'], queryFn: api.validationRules });
+  // Em modo demonstração tudo é somente-leitura (a API bloqueia toda escrita).
+  // Escondemos criar/editar/excluir/ativar regra; mantemos os cards explicativos
+  // ("Como funciona", tipos de regra) e a listagem visíveis.
+  const { data: appCfg } = useQuery({ queryKey: ['app-config'], queryFn: api.config, staleTime: 60_000 });
+  const demo = !!appCfg?.demo?.enabled;
   const [modal, setModal] = useState({ open: false, rule: null });
   const [confirm, setConfirm] = useState({ open: false, id: null, label: '' });
 
@@ -57,9 +62,11 @@ export default function ValidationRules() {
         title="Regras de validação"
         description="Regras rodam antes de criar ou alterar uma subnet. Erros bloqueiam; warnings só avisam."
         actions={
-          <button onClick={() => setModal({ open: true, rule: null })} className="btn-primary inline-flex items-center gap-1.5">
-            <Plus size={14} /> Nova regra
-          </button>
+          demo ? null : (
+            <button onClick={() => setModal({ open: true, rule: null })} className="btn-primary inline-flex items-center gap-1.5">
+              <Plus size={14} /> Nova regra
+            </button>
+          )
         }
       />
 
@@ -89,9 +96,11 @@ export default function ValidationRules() {
           <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">
             Sem regras, qualquer ADMIN pode criar qualquer subnet sem checks. Adicione pelo menos uma <strong>no-overlap</strong> pra evitar conflitos acidentais.
           </p>
-          <button onClick={() => setModal({ open: true, rule: null })} className="btn-primary inline-flex items-center gap-1.5">
-            <Plus size={14} /> Adicionar primeira regra
-          </button>
+          {!demo && (
+            <button onClick={() => setModal({ open: true, rule: null })} className="btn-primary inline-flex items-center gap-1.5">
+              <Plus size={14} /> Adicionar primeira regra
+            </button>
+          )}
 
           <div className="mt-8 text-left max-w-2xl mx-auto">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tipos de regra disponíveis</p>
@@ -128,7 +137,7 @@ export default function ValidationRules() {
                 return (
                   <tr key={r.id}>
                     <td className="px-3 py-2">
-                      <input type="checkbox" checked={r.enabled} onChange={(e) => toggleMut.mutate({ id: r.id, enabled: e.target.checked })} className="accent-brand-600 cursor-pointer" />
+                      <input type="checkbox" checked={r.enabled} disabled={demo} onChange={(e) => toggleMut.mutate({ id: r.id, enabled: e.target.checked })} className="accent-brand-600 cursor-pointer disabled:cursor-default disabled:opacity-60" />
                     </td>
                     <td className="px-3 py-2 font-medium">{r.name}</td>
                     <td className="px-3 py-2">
@@ -144,8 +153,14 @@ export default function ValidationRules() {
                     <td className="px-3 py-2 text-xs text-slate-500">{r.scope || 'global'}</td>
                     <td className="px-3 py-2 text-[11px] font-mono text-slate-600">{JSON.stringify(r.config)}</td>
                     <td className="px-3 py-2 text-right whitespace-nowrap">
-                      <button onClick={() => setModal({ open: true, rule: r })} className="text-slate-400 hover:text-brand-600 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" title="Editar"><Pencil size={14} /></button>
-                      <button onClick={() => setConfirm({ open: true, id: r.id, label: r.name })} className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 ml-1" title="Excluir"><Trash2 size={14} /></button>
+                      {demo ? (
+                        <span className="text-xs text-slate-400 italic">somente leitura</span>
+                      ) : (
+                        <>
+                          <button onClick={() => setModal({ open: true, rule: r })} className="text-slate-400 hover:text-brand-600 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800" title="Editar"><Pencil size={14} /></button>
+                          <button onClick={() => setConfirm({ open: true, id: r.id, label: r.name })} className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 ml-1" title="Excluir"><Trash2 size={14} /></button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 );

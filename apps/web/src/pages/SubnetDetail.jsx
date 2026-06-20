@@ -107,8 +107,19 @@ export default function SubnetDetail() {
   const [searchParams] = useSearchParams();
   const highlightIp = searchParams.get('ip');
   const { user } = useAuth();
-  const canEdit = user?.role === 'ADMIN';
   const navigate = useNavigate();
+
+  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
+  // escrita). Escondemos qualquer controle que crie/edite/libere/aloque IP,
+  // edição inline e ações em massa pra não confundir nem passar impressão de
+  // insegurança. `canEdit` passa a refletir também esse estado.
+  const { data: appCfg } = useQuery({
+    queryKey: ['app-config'],
+    queryFn: api.config,
+    staleTime: 60_000,
+  });
+  const demo = !!appCfg?.demo?.enabled;
+  const canEdit = user?.role === 'ADMIN' && !demo;
 
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
