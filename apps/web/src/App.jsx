@@ -16,6 +16,7 @@ import Profile from './pages/Profile.jsx';
 import Users from './pages/Users.jsx';
 import Audit from './pages/Audit.jsx';
 import SsoSettings from './pages/SsoSettings.jsx';
+import LdapSettings from './pages/LdapSettings.jsx';
 import SsoCallback from './pages/SsoCallback.jsx';
 import ZabbixSettings from './pages/ZabbixSettings.jsx';
 import PrometheusSettings from './pages/PrometheusSettings.jsx';
@@ -96,6 +97,14 @@ export default function App() {
                   element={
                     <Protected role="ADMIN">
                       <SsoSettings />
+                    </Protected>
+                  }
+                />
+                <Route
+                  path="/admin/ldap"
+                  element={
+                    <Protected role="ADMIN">
+                      <LdapSettings />
                     </Protected>
                   }
                 />

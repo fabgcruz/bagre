@@ -206,6 +206,12 @@ export const api = {
   testOidcConfig: () =>
     request('/admin/oidc-config/test', { method: 'POST' }),
 
+  ldapConfig: () => request('/admin/ldap-config'),
+  updateLdapConfig: (data) =>
+    request('/admin/ldap-config', { method: 'PATCH', body: JSON.stringify(data) }),
+  testLdapConfig: () =>
+    request('/admin/ldap-config/test', { method: 'POST' }),
+
   health: () => request('/health'),
   stats: () => request('/stats'),
   statsBySite: () => request('/stats/by-site'),

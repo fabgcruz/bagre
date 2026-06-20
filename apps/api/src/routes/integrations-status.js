@@ -4,6 +4,7 @@ import { testConnection as testZabbix, getConfig as getZabbixCfg, isConfigured a
 import { getConfig as getPromCfg, isConfigured as isPromConfigured } from '../integrations/prometheus.js';
 import * as powerdns from '../integrations/dns/powerdns.js';
 import { getConfig as getOidcCfg, isConfigured as isOidcConfigured, testDiscovery as testOidc } from '../auth-providers/oidc.js';
+import { getConfig as getLdapCfg, isConfigured as isLdapConfigured } from '../auth-providers/ldap.js';
 
 function ageMs(date) {
   if (!date) return null;
@@ -99,6 +100,25 @@ async function oidcStatus() {
   };
 }
 
+async function ldapStatus() {
+  const cfg = await getLdapCfg();
+  const configured = isLdapConfigured(cfg);
+  return {
+    key: 'ldap',
+    name: 'Autenticação AD/LDAP',
+    icon: '🏢',
+    description:
+      'Login com Active Directory / LDAP on-premise — papel (ADMIN/READER) mapeado pelos grupos do diretório.',
+    configured,
+    enabled: cfg.enabled,
+    lastTest: cfg.lastTestedAt
+      ? { at: cfg.lastTestedAt, ok: cfg.lastTestStatus === 'ok', message: cfg.lastTestMessage }
+      : null,
+    configUrl: '/admin/ldap',
+    healthEndpoint: '/api/admin/ldap-config/test',
+  };
+}
+
 function deriveOverall(integrations) {
   const errors = integrations.filter(
     (i) => i.enabled && (i.lastTest?.ok === false || i.lastSync?.ok === false),
@@ -125,11 +145,12 @@ function deriveOverall(integrations) {
 
 export async function registerIntegrationsStatusRoutes(app) {
   app.get('/api/admin/integrations/status', { preHandler: requireAdmin }, async () => {
-    const [zabbix, prometheus, dns, oidc, events] = await Promise.all([
+    const [zabbix, prometheus, dns, oidc, ldap, events] = await Promise.all([
       zabbixStatus(),
       prometheusStatus(),
       dnsStatus(),
       oidcStatus(),
+      ldapStatus(),
       prisma.auditLog.findMany({
         where: {
           OR: [
@@ -137,6 +158,7 @@ export async function registerIntegrationsStatusRoutes(app) {
             { entity: 'prometheus_config' },
             { entity: 'dns_config' },
             { entity: 'oidc_config' },
+            { entity: 'ldap_config' },
             { entity: 'user', action: 'login' },
           ],
         },
@@ -144,7 +166,7 @@ export async function registerIntegrationsStatusRoutes(app) {
         take: 12,
       }),
     ]);
-    const integrations = [zabbix, prometheus, dns, oidc];
+    const integrations = [zabbix, prometheus, dns, oidc, ldap];
     const overall = deriveOverall(integrations);
     return { overall, integrations, events };
   });

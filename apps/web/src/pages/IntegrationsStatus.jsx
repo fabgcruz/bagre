@@ -11,6 +11,7 @@ import {
   Clock,
   Activity,
   Globe,
+  Building2,
   ExternalLink,
 } from 'lucide-react';
 import { api } from '../api.js';
@@ -105,6 +106,13 @@ export default function IntegrationsStatus() {
       r.ok ? toast.success(r.message) : toast.error(r.message);
     },
   });
+  const testLdap = useMutation({
+    mutationFn: api.testLdapConfig,
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['integrations-status'] });
+      r.ok ? toast.success(r.message) : toast.error(r.message);
+    },
+  });
 
   const overall = data?.overall;
   const integrations = data?.integrations || [];
@@ -141,12 +149,14 @@ export default function IntegrationsStatus() {
               else if (i.key === 'prometheus') testPrometheus.mutate();
               else if (i.key === 'dns') testDns.mutate();
               else if (i.key === 'oidc') testOidc.mutate();
+              else if (i.key === 'ldap') testLdap.mutate();
             }}
             testing={
               (i.key === 'zabbix' && testZabbix.isPending) ||
               (i.key === 'prometheus' && testPrometheus.isPending) ||
               (i.key === 'dns' && testDns.isPending) ||
-              (i.key === 'oidc' && testOidc.isPending)
+              (i.key === 'oidc' && testOidc.isPending) ||
+              (i.key === 'ldap' && testLdap.isPending)
             }
           />
         ))}
@@ -242,6 +252,8 @@ function IntegrationLogo({ k, fallback }) {
       return <Activity size={26} strokeWidth={2.4} style={{ color: '#D40000' }} />;
     case 'dns':
       return <Globe size={26} strokeWidth={2.2} style={{ color: '#2F6FED' }} />;
+    case 'ldap':
+      return <Building2 size={26} strokeWidth={2.2} style={{ color: '#4F46E5' }} />;
     default:
       return <span className="text-2xl leading-none">{fallback}</span>;
   }
