@@ -181,7 +181,7 @@ export async function registerAuth(app) {
     return req.user;
   });
 
-  app.post('/api/auth/change-password', { preHandler: requireAuth }, async (req, reply) => {
+  app.post('/api/auth/change-password', { preHandler: [resetLimit, requireAuth] }, async (req, reply) => {
     // No DEMO as contas são fixas e compartilhadas — trocar a senha travaria o
     // login 1-clique pra todos os próximos visitantes.
     if (DEMO) return demoBlock(reply, 'Troca de senha desabilitada no ambiente de demonstração.');
@@ -234,7 +234,7 @@ export async function registerAuth(app) {
   });
 
   // Apply a reset token to set a new password.
-  app.post('/api/auth/reset', async (req, reply) => {
+  app.post('/api/auth/reset', { preHandler: resetLimit }, async (req, reply) => {
     const { token, newPassword } = req.body || {};
     if (!token || !newPassword || newPassword.length < 8) {
       reply.code(400);

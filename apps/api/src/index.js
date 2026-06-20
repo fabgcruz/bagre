@@ -43,7 +43,17 @@ async function build() {
   // refletir o cliente real via X-Forwarded-For — necessário pro rate-limit.
   const app = Fastify({ logger: { level: 'info' }, trustProxy: true });
 
-  await app.register(cors, { origin: true, credentials: true });
+  // CORS: se CORS_ORIGIN for definido (lista separada por vírgula), só essas
+  // origens são aceitas — em produção/demo, evita refletir qualquer Origin com
+  // credentials. Sem a env (dev), reflete a origem pra conveniência local.
+  const corsAllow = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  await app.register(cors, {
+    origin: corsAllow.length ? corsAllow : true,
+    credentials: true,
+  });
   await app.register(cookie);
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
   // JWT_SECRET é fail-closed: sem env definido ou abaixo de 32 chars, o boot

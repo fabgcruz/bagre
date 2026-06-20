@@ -1,11 +1,11 @@
 // Guardas do ambiente de demonstração (DEMO_MODE).
 //
-// Quando DEMO_MODE=true a instância é pública e compartilhada. Precisamos:
-//  - impedir que um visitante repointe integrações para alvos arbitrários
-//    (risco de SSRF / scan, ex.: endpoint de metadata 169.254.169.254);
-//  - bloquear ações destrutivas que estragariam a demo para os próximos.
-//
-// O fluxo-bandeira (aprovar pending discoveries) permanece LIBERADO.
+// Quando DEMO_MODE=true a instância é pública e compartilhada. A trava principal
+// é o hook global onRequest em index.js: TODO POST/PUT/PATCH/DELETE em /api/* é
+// 403, exceto /api/auth/login. Ou seja, o ambiente é 100% somente-leitura —
+// inclusive aprovar/rejeitar pending discoveries (são POST → bloqueados).
+// NÃO reabrir nenhum write aqui sem reavaliar o modelo de ameaça.
+// Estes helpers são defesa em profundidade pra mascarar segredos/topologia.
 
 export const DEMO = process.env.DEMO_MODE === 'true';
 

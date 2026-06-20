@@ -54,7 +54,7 @@ export async function registerOidcRoutes(app) {
         ? {
             enabled: true,
             banner:
-              'Ambiente de demonstração — os dados são reiniciados todo dia às 04h (BRT). Não insira dados reais.',
+              'Ambiente de demonstração — somente leitura. Explore à vontade.',
             // Credenciais propositalmente públicas para login em 1 clique.
             accounts: [
               {
