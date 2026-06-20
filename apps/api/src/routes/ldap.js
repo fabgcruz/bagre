@@ -6,18 +6,16 @@ import { prisma } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { auditFromReq } from '../audit.js';
 import { getConfig, isConfigured, testConnection } from '../auth-providers/ldap.js';
-import { redactForDemo } from '../demo-guard.js';
 
-// Nunca devolve a senha do service account crua pra UI.
-// Na demo, o "admin" é um visitante anônimo: também oculta a topologia interna
-// (url do diretório, DN do service account, baseDn) — só vaza atributos genéricos.
+// Nunca devolve a senha do service account crua pra UI (só hasBindPassword).
+// Os demais campos (url/bindDn/baseDn/filtro/grupos) SÃO retornados — inclusive
+// na demo: ali os valores são fictícios (corp.local/openldap) e servem como
+// EXEMPLO funcional pra quem está conhecendo a integração AD/LDAP. O único
+// segredo é a senha, e essa continua mascarada.
 function maskSecret(cfg) {
   if (!cfg) return cfg;
   const { bindPassword, ...rest } = cfg;
-  return redactForDemo(
-    { ...rest, hasBindPassword: !!bindPassword },
-    ['url', 'bindDn', 'baseDn'],
-  );
+  return { ...rest, hasBindPassword: !!bindPassword };
 }
 
 export async function registerLdapRoutes(app) {
