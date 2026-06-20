@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, KeyRound, Lock } from 'lucide-react';
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import AuthProviderBadge from '../components/AuthProviderBadge.jsx';
 
 export default function Profile() {
   const { user, refresh } = useAuth();
@@ -59,6 +60,27 @@ export default function Profile() {
           </>
         }
       />
+
+      <div className="card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm">
+            <div className="font-medium text-slate-700 dark:text-slate-200">Origem da conta</div>
+            <div className="text-slate-500 text-xs mt-0.5">
+              {user?.authProvider === 'ldap'
+                ? 'Sua sessão foi autenticada contra o diretório (LDAP/Active Directory).'
+                : user?.authProvider === 'oidc'
+                  ? 'Sua sessão foi autenticada via SSO (OIDC).'
+                  : 'Conta local — autenticada pelo Bagre.'}
+            </div>
+          </div>
+          <AuthProviderBadge
+            provider={user?.authProvider}
+            externalId={user?.externalId}
+            groups={user?.externalGroups}
+            detail
+          />
+        </div>
+      </div>
 
       {force && (
         <div className="card p-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20">

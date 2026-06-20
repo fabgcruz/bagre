@@ -134,6 +134,11 @@ async function build() {
       role: dbUser.role,
       name: dbUser.name,
       mustChangePwd: dbUser.mustChangePwd,
+      // Origem da autenticação (local/ldap/oidc) + DN/grupos do diretório — usado
+      // pela UI pra mostrar "Autenticado via LDAP/AD". Não-sensível.
+      authProvider: dbUser.authProvider || 'local',
+      externalId: dbUser.externalId || null,
+      externalGroups: dbUser.externalGroups || [],
     };
     // Write methods require ADMIN — except change-password & user-self routes
     const adminOnlyForWrites = !(

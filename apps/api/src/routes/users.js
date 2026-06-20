@@ -18,6 +18,12 @@ function projectUser(u) {
     mustChangePwd: u.mustChangePwd,
     lastLoginAt: u.lastLoginAt,
     createdAt: u.createdAt,
+    // Origem da autenticação (local / ldap / oidc) — evidência de que o login
+    // veio do diretório. externalId = DN no AD; externalGroups = grupos do AD.
+    // Não são segredos (é a procedência do usuário); senha/hash nunca saem daqui.
+    authProvider: u.authProvider || 'local',
+    externalId: u.externalId || null,
+    externalGroups: u.externalGroups || [],
   };
 }
 

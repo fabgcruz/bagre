@@ -13,6 +13,7 @@ import {
 import { api, demoTryWrite } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import AuthProviderBadge from '../components/AuthProviderBadge.jsx';
 
 export default function Users() {
   const { user: me } = useAuth();
@@ -76,6 +77,7 @@ export default function Users() {
               <th className="px-3 py-2 text-left">E-mail</th>
               <th className="px-3 py-2 text-left">Nome</th>
               <th className="px-3 py-2 text-left">Perfil</th>
+              <th className="px-3 py-2 text-left">Origem</th>
               <th className="px-3 py-2 text-left">Status</th>
               <th className="px-3 py-2 text-left">Último login</th>
               <th className="px-3 py-2"></th>
@@ -98,6 +100,13 @@ export default function Users() {
                     <option value="ADMIN">ADMIN</option>
                     <option value="READER">READER</option>
                   </select>
+                </td>
+                <td className="px-3 py-2">
+                  <AuthProviderBadge
+                    provider={u.authProvider}
+                    externalId={u.externalId}
+                    groups={u.externalGroups}
+                  />
                 </td>
                 <td className="px-3 py-2">
                   {u.active ? (
