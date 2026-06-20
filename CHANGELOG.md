@@ -10,6 +10,21 @@ Quem está testando o Bagre pode acompanhar aqui o que mudou em cada versão —
 
 Mudanças que estão em `main` e ainda não entraram em release oficial.
 
+### Adicionado
+- **Autenticação LDAP / Active Directory nativa** ([#48](https://github.com/fabgcruz/bagre/issues/48)) — provider de bind direto (search-then-bind, valida a senha re-bindando como o usuário), mapeamento **grupo do AD → papel** (`memberOf` → ADMIN/READER), provisionamento no 1º login, suporte a `ldaps://`/StartTLS. Configurável na nova tela **Integrações → Autenticação AD/LDAP** (`/admin/ldap`), com botão **Testar conexão**. Login local e SSO continuam em paralelo (anti-lockout).
+- **Card "Autenticação AD/LDAP"** na tela de Status das Integrações, ao lado de Zabbix/Prometheus/PowerDNS/SSO.
+- **Selo de origem da conta** (LDAP/AD · SSO · Local) no Perfil e na coluna "Origem" da lista de Usuários — evidencia que o login veio do diretório (mostra DN + grupos).
+- **Demo:** opção de entrar por **conta de domínio (AD/LDAP)** na tela de login (contas de teste).
+- **Demo populado:** Catálogos (ranges mestre + VLANs de datacenter) e regras de Validação agora têm exemplos, e a config LDAP aparece preenchida como exemplo funcional.
+
+### Segurança / hardening
+- **Demo 100% somente-leitura:** trava global no servidor bloqueia toda escrita (`POST/PUT/PATCH/DELETE`) exceto o login; a UI mostra o aviso **"Somente demonstração"** ao tentar criar/editar/excluir — nada é alterado.
+- **Mascaramento de segredos não vaza mais o sufixo** (Zabbix/DNS/Prometheus/OIDC usavam `••••••••`+últimos4; agora é placeholder fixo).
+- **`/metrics` bloqueado** no origin público do demo; **CSP** e **Permissions-Policy** adicionados; **CORS** configurável via `CORS_ORIGIN` (deixa de refletir qualquer origem com credentials).
+- **Rate-limit** de login configurável (`LOGIN_RATE_MAX`; demo fixa 12/5min) e estendido a `/api/auth/reset` e `/change-password`.
+- **SSO callback:** a origem do redirect passa a vir de fonte server-side confiável (`APP_BASE_URL`/`redirectUri`), não dos headers do request, e o `next` é sanitizado — corrige open-redirect e vazamento de token na URL.
+- **Anti-SSRF nas integrações:** ao salvar a URL de Zabbix/Prometheus/PowerDNS, destinos **link-local/metadata** (`169.254.0.0/16`, `fd00:ec2::254`) são bloqueados; redes privadas internas continuam permitidas (`INTEGRATION_URL_STRICT=true` trava tudo).
+
 ---
 
 ## [1.0.0] — 2026-06-17
