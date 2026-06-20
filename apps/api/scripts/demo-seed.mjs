@@ -327,6 +327,24 @@ async function wireCatalogs() {
   console.log('[demo-seed] catálogos: 5 ranges mestre + 4 VLANs de datacenter');
 }
 
+// Regras de validação de exemplo pra a tela de Validação não ficar vazia.
+async function wireValidation() {
+  const rules = [
+    { name: 'global-sem-overlap', ruleType: 'no-overlap', severity: 'error', scope: null, config: {} },
+    { name: 'dentro-de-range-mestre', ruleType: 'within-master', severity: 'warning', scope: null, config: {} },
+    { name: 'tamanho-entre-16-e-29', ruleType: 'size-range', severity: 'warning', scope: null, config: { minPrefix: 16, maxPrefix: 29 } },
+    { name: 'nome-minusculo-com-hifen', ruleType: 'name-pattern', severity: 'warning', scope: null, config: { pattern: '^[a-z0-9-]+$' } },
+  ];
+  for (const r of rules) {
+    await prisma.validationRule.upsert({
+      where: { name: r.name },
+      create: r,
+      update: { enabled: true, ruleType: r.ruleType, severity: r.severity, config: r.config },
+    });
+  }
+  console.log('[demo-seed] validação: 4 regras de exemplo');
+}
+
 async function main() {
   if (!DEMO) {
     console.log('[demo-seed] DEMO_MODE != true — nada a fazer.');
@@ -337,6 +355,7 @@ async function main() {
   await upsertDemoUser(DEMO_READER_EMAIL, DEMO_READER_PASSWORD, 'READER');
   await seedBaseData();
   await wireCatalogs();
+  await wireValidation();
   await wireZabbix();
   await wirePrometheus();
   await wireDns();
