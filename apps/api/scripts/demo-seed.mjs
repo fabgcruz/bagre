@@ -297,6 +297,36 @@ async function seedBaseData() {
   console.log(`[demo-seed] dados base: ${nSites} sites, ${nSubnets} subnets, ${nIps} IPs, ${nDevices} devices`);
 }
 
+// Catálogos de referência (Ranges Mestre + VLANs de datacenter). Exemplos
+// neutros pra a tela não aparecer vazia no demo. Idempotente.
+async function wireCatalogs() {
+  const ranges = [
+    { cidr: '10.0.0.0/8', description: 'Rede corporativa (RFC1918)', category: 'Corporativo' },
+    { cidr: '10.20.0.0/16', description: 'Datacenter Principal', category: 'Datacenter' },
+    { cidr: '172.16.0.0/12', description: 'Ambientes cloud (VPCs)', category: 'Cloud' },
+    { cidr: '192.168.0.0/16', description: 'Filiais e escritórios', category: 'WAN' },
+    { cidr: '100.64.0.0/10', description: 'CGNAT / links de operadora', category: 'Links' },
+  ];
+  for (const r of ranges) {
+    await prisma.masterRange.upsert({
+      where: { cidr_description: { cidr: r.cidr, description: r.description } },
+      create: r,
+      update: { category: r.category },
+    });
+  }
+  if ((await prisma.datacenterVlan.count()) === 0) {
+    await prisma.datacenterVlan.createMany({
+      data: [
+        { name: 'VLAN 100 — Servidores', provider: 'Datacenter Principal', vlanId: 100, network: '10.20.100.0/24', usage: 'Servidores físicos' },
+        { name: 'VLAN 200 — Virtualização', provider: 'Datacenter Principal', vlanId: 200, network: '10.20.200.0/24', usage: 'Hosts de virtualização' },
+        { name: 'VLAN 300 — Storage', provider: 'Colocation SP', vlanId: 300, network: '10.20.30.0/24', usage: 'Rede de storage (iSCSI)' },
+        { name: 'VLAN 400 — DMZ', provider: 'Colocation RJ', vlanId: 400, network: '10.20.40.0/24', usage: 'DMZ / borda' },
+      ],
+    });
+  }
+  console.log('[demo-seed] catálogos: 5 ranges mestre + 4 VLANs de datacenter');
+}
+
 async function main() {
   if (!DEMO) {
     console.log('[demo-seed] DEMO_MODE != true — nada a fazer.');
@@ -306,6 +336,7 @@ async function main() {
   await upsertDemoUser(DEMO_ADMIN_EMAIL, DEMO_ADMIN_PASSWORD, 'ADMIN');
   await upsertDemoUser(DEMO_READER_EMAIL, DEMO_READER_PASSWORD, 'READER');
   await seedBaseData();
+  await wireCatalogs();
   await wireZabbix();
   await wirePrometheus();
   await wireDns();
