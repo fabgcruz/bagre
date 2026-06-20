@@ -47,18 +47,8 @@ function formatDate(iso) {
 
 export default function PendingDiscoveries() {
   const { user } = useAuth();
+  const canEdit = user?.role === 'ADMIN';
   const qc = useQueryClient();
-
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita, incluindo aprovar/rejeitar/bulk). Escondemos todas as ações
-  // mutantes — a lista de descobertas continua visível pra mostrar os hosts.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
-  const canEdit = user?.role === 'ADMIN' && !demo;
 
   const [status, setStatus] = useState('PENDING');
   const [q, setQ] = useState('');
@@ -282,7 +272,6 @@ export default function PendingDiscoveries() {
               <DiscoveryTable
                 rows={group}
                 canEdit={canEdit}
-                demo={demo}
                 selected={selected}
                 onToggle={toggleSelect}
                 onApprove={(d) => {
@@ -310,7 +299,6 @@ export default function PendingDiscoveries() {
             <DiscoveryTable
               rows={discoveries}
               canEdit={false}
-              demo={demo}
               showStatusInfo
             />
           )}
@@ -371,7 +359,7 @@ export default function PendingDiscoveries() {
   );
 }
 
-function DiscoveryTable({ rows, canEdit, demo, selected, onToggle, onApprove, onReject, showStatusInfo }) {
+function DiscoveryTable({ rows, canEdit, selected, onToggle, onApprove, onReject, showStatusInfo }) {
   return (
     <table className="w-full text-sm">
       <thead className="bg-slate-50 dark:bg-slate-800/30 text-left text-xs uppercase tracking-wider text-slate-500">
@@ -385,7 +373,7 @@ function DiscoveryTable({ rows, canEdit, demo, selected, onToggle, onApprove, on
           <th className="px-3 py-2">Visto há</th>
           <th className="px-3 py-2 w-14">Vezes</th>
           {showStatusInfo && <th className="px-3 py-2">Decidido por</th>}
-          {(canEdit || demo) && <th className="px-3 py-2 w-32 text-right">Ações</th>}
+          {canEdit && <th className="px-3 py-2 w-32 text-right">Ações</th>}
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -446,11 +434,6 @@ function DiscoveryTable({ rows, canEdit, demo, selected, onToggle, onApprove, on
                 >
                   <X size={12} />
                 </button>
-              </td>
-            )}
-            {!canEdit && demo && (
-              <td className="px-3 py-2 text-right whitespace-nowrap">
-                <span className="text-xs text-slate-400 italic">somente leitura</span>
               </td>
             )}
           </tr>

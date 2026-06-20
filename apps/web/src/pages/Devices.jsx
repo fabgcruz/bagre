@@ -28,22 +28,8 @@ function formatDate(iso) {
 
 export default function Devices() {
   const { user } = useAuth();
+  const canEdit = user?.role === 'ADMIN';
   const qc = useQueryClient();
-
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita). Escondemos as ações de criar/editar/excluir equipamento pra não
-  // confundir nem passar impressão de insegurança.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
-  const isAdmin = user?.role === 'ADMIN';
-  const canEdit = isAdmin && !demo;
-  // Em demo, um ADMIN ainda vê a coluna de ações (mas só "somente leitura"),
-  // para deixar explícito que a gestão existe e está apenas travada.
-  const showActionsCol = isAdmin;
 
   const [q, setQ] = useState('');
   const [siteFilter, setSiteFilter] = useState('');
@@ -169,13 +155,13 @@ export default function Devices() {
               <th className="px-3 py-2.5">IPs</th>
               <th className="px-3 py-2.5">Responsável</th>
               <th className="px-3 py-2.5">Última vez visto</th>
-              {showActionsCol && <th className="px-3 py-2.5 w-24" />}
+              {canEdit && <th className="px-3 py-2.5 w-24" />}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {!isLoading && devices.length === 0 && (
               <tr>
-                <td colSpan={showActionsCol ? 8 : 7} className="p-8 text-center text-slate-500">
+                <td colSpan={canEdit ? 8 : 7} className="p-8 text-center text-slate-500">
                   Nenhum equipamento com esse filtro.
                 </td>
               </tr>
@@ -211,34 +197,28 @@ export default function Devices() {
                   {d.ownerEmail || '—'}
                 </td>
                 <td className="px-3 py-2 text-xs text-slate-500">{formatDate(d.lastSeenAt)}</td>
-                {showActionsCol && (
+                {canEdit && (
                   <td
                     className="px-3 py-2 text-right whitespace-nowrap"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {demo ? (
-                      <span className="text-xs text-slate-400 italic">somente leitura</span>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => {
-                            setErr(null);
-                            setModal({ open: true, initial: d });
-                          }}
-                          className="text-slate-400 hover:text-brand-600 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
-                          title="Editar"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => setConfirm({ open: true, device: d })}
-                          className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 ml-1"
-                          title="Excluir (libera IPs vinculados)"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </>
-                    )}
+                    <button
+                      onClick={() => {
+                        setErr(null);
+                        setModal({ open: true, initial: d });
+                      }}
+                      className="text-slate-400 hover:text-brand-600 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                      title="Editar"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => setConfirm({ open: true, device: d })}
+                      className="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/30 ml-1"
+                      title="Excluir (libera IPs vinculados)"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </td>
                 )}
               </tr>

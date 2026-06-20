@@ -70,14 +70,6 @@ export default function SsoSettings() {
     queryKey: ['oidc-config'],
     queryFn: api.oidcConfig,
   });
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita). Desabilitamos salvar/testar/habilitar e os campos do form.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
   const [form, setForm] = useState(null);
   const [groupsCsv, setGroupsCsv] = useState('');
   const [provider, setProvider] = useState('microsoft');
@@ -188,15 +180,9 @@ export default function SsoSettings() {
         actions={
           <button
             onClick={() => enable.mutate()}
-            disabled={demo || !fullyConfigured || enable.isPending}
-            className={`${form.enabled ? 'btn-danger' : 'btn-primary'} disabled:opacity-50 disabled:cursor-not-allowed`}
-            title={
-              demo
-                ? 'Desabilitado no ambiente de demonstração'
-                : !fullyConfigured
-                ? 'Configure tudo antes de habilitar'
-                : ''
-            }
+            disabled={!fullyConfigured || enable.isPending}
+            className={form.enabled ? 'btn-danger' : 'btn-primary'}
+            title={!fullyConfigured ? 'Configure tudo antes de habilitar' : ''}
           >
             <Power size={14} />
             {form.enabled ? 'Desabilitar SSO' : 'Habilitar SSO'}
@@ -217,9 +203,8 @@ export default function SsoSettings() {
             <button
               key={key}
               type="button"
-              disabled={demo}
               onClick={() => applyPreset(key)}
-              className={`text-sm px-3 py-1.5 rounded-lg border transition disabled:opacity-60 disabled:cursor-not-allowed ${
+              className={`text-sm px-3 py-1.5 rounded-lg border transition ${
                 provider === key
                   ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 font-medium'
                   : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -253,10 +238,9 @@ export default function SsoSettings() {
           <Field label={`Redirect URI (cole esta no ${prov.label})`}>
             <CopyInput value={form.redirectUri} />
             <input
-              disabled={demo}
               value={form.redirectUri}
               onChange={(e) => setForm({ ...form, redirectUri: e.target.value })}
-              className="input mt-2 font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input mt-2 font-mono text-xs"
             />
           </Field>
         </Section>
@@ -265,22 +249,20 @@ export default function SsoSettings() {
           <Field label="Issuer URL" hint={prov.issuerHint}>
             <input
               required
-              disabled={demo}
               value={form.issuerUrl}
               onChange={(e) => setForm({ ...form, issuerUrl: e.target.value })}
               placeholder={prov.issuerPlaceholder}
               readOnly={Boolean(prov.issuerFixed)}
-              className={`input font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed ${prov.issuerFixed ? 'bg-slate-50 dark:bg-slate-800/50' : ''}`}
+              className={`input font-mono text-xs ${prov.issuerFixed ? 'bg-slate-50 dark:bg-slate-800/50' : ''}`}
             />
           </Field>
           <Field label="Application (client) ID">
             <input
               required
-              disabled={demo}
               value={form.clientId}
               onChange={(e) => setForm({ ...form, clientId: e.target.value })}
               placeholder="00000000-0000-0000-0000-000000000000"
-              className="input font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input font-mono text-xs"
             />
           </Field>
           <Field
@@ -293,11 +275,10 @@ export default function SsoSettings() {
           >
             <input
               type="password"
-              disabled={demo}
               value={form.clientSecret}
               onChange={(e) => setForm({ ...form, clientSecret: e.target.value })}
               placeholder={cfg?.hasClientSecret ? '•••••••• (mantém o atual)' : ''}
-              className="input disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input"
             />
           </Field>
         </Section>
@@ -308,20 +289,18 @@ export default function SsoSettings() {
             hint="Object IDs dos grupos no Entra ID, separados por vírgula. Usuário em qualquer um deles vira ADMIN. Se vazio, ninguém é promovido automaticamente — defina o papel manualmente."
           >
             <input
-              disabled={demo}
               value={groupsCsv}
               onChange={(e) => setGroupsCsv(e.target.value)}
               placeholder="aaaaaaaa-..., bbbbbbbb-..."
-              className="input font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input font-mono text-xs"
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Perfil padrão para novos usuários">
               <select
-                disabled={demo}
                 value={form.defaultRole}
                 onChange={(e) => setForm({ ...form, defaultRole: e.target.value })}
-                className="input disabled:opacity-60 disabled:cursor-not-allowed"
+                className="input"
               >
                 <option value="READER">READER (somente leitura)</option>
                 <option value="ADMIN">ADMIN</option>
@@ -331,12 +310,11 @@ export default function SsoSettings() {
               <label className="inline-flex items-center gap-2 text-sm pt-2">
                 <input
                   type="checkbox"
-                  disabled={demo}
                   checked={form.autoProvision}
                   onChange={(e) =>
                     setForm({ ...form, autoProvision: e.target.checked })
                   }
-                  className="accent-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="accent-brand-600"
                 />
                 Criar usuário no primeiro login (recomendado)
               </label>
@@ -348,72 +326,56 @@ export default function SsoSettings() {
           <div className="grid grid-cols-3 gap-3">
             <Field label="Claim de e-mail">
               <input
-                disabled={demo}
                 value={form.emailClaim}
                 onChange={(e) => setForm({ ...form, emailClaim: e.target.value })}
-                className="input font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                className="input font-mono text-xs"
               />
             </Field>
             <Field label="Claim de nome">
               <input
-                disabled={demo}
                 value={form.nameClaim}
                 onChange={(e) => setForm({ ...form, nameClaim: e.target.value })}
-                className="input font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                className="input font-mono text-xs"
               />
             </Field>
             <Field label="Claim de grupos">
               <input
-                disabled={demo}
                 value={form.groupsClaim}
                 onChange={(e) => setForm({ ...form, groupsClaim: e.target.value })}
-                className="input font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                className="input font-mono text-xs"
               />
             </Field>
           </div>
           <Field label="Scopes">
             <input
-              disabled={demo}
               value={form.scopes}
               onChange={(e) => setForm({ ...form, scopes: e.target.value })}
-              className="input font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input font-mono text-xs"
             />
           </Field>
           <Field label="Texto do botão na tela de login">
             <input
-              disabled={demo}
               value={form.buttonLabel}
               onChange={(e) => setForm({ ...form, buttonLabel: e.target.value })}
-              className="input disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input"
             />
           </Field>
         </Section>
 
         <div className="flex items-center gap-2 sticky bottom-0 bg-white/90 dark:bg-slate-900/80 backdrop-blur p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-          <button
-            type="submit"
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={demo || save.isPending}
-            title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
-          >
+          <button type="submit" className="btn-primary" disabled={save.isPending}>
             <Save size={14} />
             {save.isPending ? 'Salvando…' : 'Salvar configurações'}
           </button>
           <button
             type="button"
             onClick={() => test.mutate()}
-            className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={demo || test.isPending}
-            title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
+            className="btn-ghost"
+            disabled={test.isPending}
           >
             <Activity size={14} />
             {test.isPending ? 'Testando…' : 'Testar conexão'}
           </button>
-          {demo && (
-            <p className="text-xs text-slate-400">
-              Configuração somente leitura no ambiente de demonstração.
-            </p>
-          )}
           {cfg?.lastTestedAt && (
             <span className="text-xs text-slate-500 ml-auto">
               último teste:{' '}

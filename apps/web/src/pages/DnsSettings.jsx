@@ -16,14 +16,6 @@ export default function DnsSettings() {
   const qc = useQueryClient();
   const toast = useToast();
   const { data: cfg, isLoading } = useQuery({ queryKey: ['dns-config'], queryFn: api.dnsConfig });
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita). Desabilitamos salvar/testar/preview/sync e os campos do form.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
   const [form, setForm] = useState(null);
 
   useEffect(() => {
@@ -120,19 +112,16 @@ export default function DnsSettings() {
             </div>
           </div>
           <div className="flex flex-col gap-2 shrink-0">
-            <button onClick={() => test.mutate()} disabled={demo || test.isPending || !cfg.baseUrl}
-              title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
-              className="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={() => test.mutate()} disabled={test.isPending || !cfg.baseUrl}
+              className="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 inline-flex items-center gap-1 disabled:opacity-50">
               <Activity size={12} /> Testar conexão
             </button>
-            <button onClick={() => previewMut.mutate()} disabled={demo || previewMut.isPending || !cfg.defaultZone}
-              title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
-              className="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={() => previewMut.mutate()} disabled={previewMut.isPending || !cfg.defaultZone}
+              className="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 inline-flex items-center gap-1 disabled:opacity-50">
               <Eye size={12} /> Preview diff
             </button>
-            <button onClick={() => { if (confirm('Aplicar sync no PowerDNS agora?')) sync.mutate(); }} disabled={demo || sync.isPending || !cfg.defaultZone}
-              title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
-              className="btn-primary text-xs inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={() => { if (confirm('Aplicar sync no PowerDNS agora?')) sync.mutate(); }} disabled={sync.isPending || !cfg.defaultZone}
+              className="btn-primary text-xs inline-flex items-center gap-1 disabled:opacity-50">
               <RefreshCcw size={12} className={sync.isPending ? 'animate-spin' : ''} />
               {sync.isPending ? 'Sincronizando…' : 'Sync agora'}
             </button>
@@ -168,8 +157,8 @@ export default function DnsSettings() {
           <label className="text-xs font-medium text-slate-600 block mb-1.5">Provider DNS</label>
           <div className="grid grid-cols-2 gap-2">
             {PROVIDERS.map((p) => (
-              <button key={p.id} type="button" disabled={demo} onClick={() => p.impl && update('provider', p.id)}
-                className={`text-left px-3 py-2 rounded border text-sm transition disabled:opacity-60 disabled:cursor-not-allowed ${
+              <button key={p.id} type="button" onClick={() => p.impl && update('provider', p.id)}
+                className={`text-left px-3 py-2 rounded border text-sm transition ${
                   form.provider === p.id
                     ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/30'
                     : 'border-slate-200 hover:border-slate-300'
@@ -183,43 +172,38 @@ export default function DnsSettings() {
 
         <div>
           <label className="text-xs font-medium text-slate-600 block mb-1">URL da API</label>
-          <input disabled={demo} className="input w-full font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed" placeholder="https://powerdns.empresa.local:8081/api/v1" value={form.baseUrl} onChange={(e) => update('baseUrl', e.target.value)} />
+          <input className="input w-full font-mono text-sm" placeholder="https://powerdns.empresa.local:8081/api/v1" value={form.baseUrl} onChange={(e) => update('baseUrl', e.target.value)} />
         </div>
 
         <div>
           <label className="text-xs font-medium text-slate-600 block mb-1">API Key (X-API-Key)</label>
-          <input type="password" disabled={demo} className="input w-full font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed" placeholder={cfg.hasApiKey ? '(salva — deixe vazio pra manter)' : '••••••••'} value={form.apiKey} onChange={(e) => update('apiKey', e.target.value)} />
+          <input type="password" className="input w-full font-mono text-sm" placeholder={cfg.hasApiKey ? '(salva — deixe vazio pra manter)' : '••••••••'} value={form.apiKey} onChange={(e) => update('apiKey', e.target.value)} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Server ID</label>
-            <input disabled={demo} className="input w-full font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed" placeholder="localhost" value={form.serverId} onChange={(e) => update('serverId', e.target.value)} />
+            <input className="input w-full font-mono text-sm" placeholder="localhost" value={form.serverId} onChange={(e) => update('serverId', e.target.value)} />
           </div>
           <div>
             <label className="text-xs font-medium text-slate-600 block mb-1">Intervalo (min)</label>
-            <input type="number" min="5" disabled={demo} className="input w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed" value={form.intervalMinutes} onChange={(e) => update('intervalMinutes', Number(e.target.value))} />
+            <input type="number" min="5" className="input w-full text-sm" value={form.intervalMinutes} onChange={(e) => update('intervalMinutes', Number(e.target.value))} />
           </div>
         </div>
 
         <div>
           <label className="text-xs font-medium text-slate-600 block mb-1">Zona padrão</label>
-          <input disabled={demo} className="input w-full font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed" placeholder="internal.empresa.local." value={form.defaultZone} onChange={(e) => update('defaultZone', e.target.value)} />
+          <input className="input w-full font-mono text-sm" placeholder="internal.empresa.local." value={form.defaultZone} onChange={(e) => update('defaultZone', e.target.value)} />
           <p className="text-[11px] text-slate-500 mt-1">Pode incluir o ponto final (padrão PowerDNS). Os hostnames do Bagre vão virar <code>&lt;hostname&gt;.&lt;zona&gt;</code>.</p>
         </div>
 
         <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" disabled={demo} checked={form.enabled} onChange={(e) => update('enabled', e.target.checked)} className="accent-brand-600 disabled:opacity-60 disabled:cursor-not-allowed" />
+          <input type="checkbox" checked={form.enabled} onChange={(e) => update('enabled', e.target.checked)} className="accent-brand-600" />
           <span className="text-sm">Sync automático ativo</span>
         </label>
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          {demo && (
-            <p className="text-xs text-slate-400 mr-auto">
-              Configuração somente leitura no ambiente de demonstração.
-            </p>
-          )}
-          <button type="submit" disabled={demo || save.isPending} title={demo ? 'Desabilitado no ambiente de demonstração' : ''} className="btn-primary inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button type="submit" disabled={save.isPending} className="btn-primary inline-flex items-center gap-1 disabled:opacity-50">
             <Save size={14} /> {save.isPending ? 'Salvando…' : 'Salvar'}
           </button>
         </div>

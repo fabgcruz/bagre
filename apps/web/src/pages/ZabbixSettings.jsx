@@ -20,14 +20,6 @@ export default function ZabbixSettings() {
     queryKey: ['zabbix-config'],
     queryFn: api.zabbixConfig,
   });
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita). Desabilitamos salvar/testar/sincronizar e os campos do form.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
   const [form, setForm] = useState(null);
   const [groupsCsv, setGroupsCsv] = useState('');
 
@@ -117,15 +109,9 @@ export default function ZabbixSettings() {
         actions={
           <button
             onClick={() => enable.mutate()}
-            disabled={demo || !fullyConfigured || enable.isPending}
-            className={`${form.enabled ? 'btn-danger' : 'btn-primary'} disabled:opacity-50 disabled:cursor-not-allowed`}
-            title={
-              demo
-                ? 'Desabilitado no ambiente de demonstração'
-                : !fullyConfigured
-                ? 'Configure URL e token antes de habilitar'
-                : ''
-            }
+            disabled={!fullyConfigured || enable.isPending}
+            className={form.enabled ? 'btn-danger' : 'btn-primary'}
+            title={!fullyConfigured ? 'Configure URL e token antes de habilitar' : ''}
           >
             <Power size={14} />
             {form.enabled ? 'Pausar' : 'Habilitar sincronização'}
@@ -143,11 +129,10 @@ export default function ZabbixSettings() {
           >
             <input
               required
-              disabled={demo}
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}
               placeholder="https://zabbix.empresa.local"
-              className="input font-mono text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input font-mono text-xs"
             />
           </Field>
           <Field
@@ -160,11 +145,10 @@ export default function ZabbixSettings() {
           >
             <input
               type="password"
-              disabled={demo}
               value={form.apiToken}
               onChange={(e) => setForm({ ...form, apiToken: e.target.value })}
               placeholder={cfg?.hasApiToken ? '•••••••• (mantém o atual)' : ''}
-              className="input disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input"
             />
           </Field>
           <details className="text-sm">
@@ -174,20 +158,18 @@ export default function ZabbixSettings() {
             <div className="mt-3 space-y-3 pl-4 border-l-2 border-slate-100 dark:border-slate-700">
               <Field label="Usuário">
                 <input
-                  disabled={demo}
                   value={form.username}
                   onChange={(e) => setForm({ ...form, username: e.target.value })}
-                  className="input disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="input"
                 />
               </Field>
               <Field label="Senha">
                 <input
                   type="password"
-                  disabled={demo}
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder={cfg?.hasPassword ? '•••••••• (mantém a atual)' : ''}
-                  className="input disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="input"
                 />
               </Field>
             </div>
@@ -203,10 +185,9 @@ export default function ZabbixSettings() {
               <input
                 type="number"
                 min="1"
-                disabled={demo}
                 value={form.intervalMinutes}
                 onChange={(e) => setForm({ ...form, intervalMinutes: e.target.value })}
-                className="input disabled:opacity-60 disabled:cursor-not-allowed"
+                className="input"
               />
             </Field>
             <Field
@@ -216,10 +197,9 @@ export default function ZabbixSettings() {
               <input
                 type="number"
                 min="1"
-                disabled={demo}
                 value={form.staleAfterDays}
                 onChange={(e) => setForm({ ...form, staleAfterDays: e.target.value })}
-                className="input disabled:opacity-60 disabled:cursor-not-allowed"
+                className="input"
               />
             </Field>
           </div>
@@ -228,31 +208,24 @@ export default function ZabbixSettings() {
             hint="Deixe vazio para sincronizar todos os hosts. Nomes separados por vírgula."
           >
             <input
-              disabled={demo}
               value={groupsCsv}
               onChange={(e) => setGroupsCsv(e.target.value)}
               placeholder="Production, Equinix-SP3, Customer X"
-              className="input disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input"
             />
           </Field>
         </Section>
 
         <div className="flex items-center gap-2 sticky bottom-0 bg-white/90 dark:bg-slate-900/80 backdrop-blur p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-          <button
-            type="submit"
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={demo || save.isPending}
-            title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
-          >
+          <button type="submit" className="btn-primary" disabled={save.isPending}>
             <Save size={14} />
             {save.isPending ? 'Salvando…' : 'Salvar'}
           </button>
           <button
             type="button"
             onClick={() => test.mutate()}
-            className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={demo || test.isPending}
-            title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
+            className="btn-ghost"
+            disabled={test.isPending}
           >
             <Activity size={14} />
             {test.isPending ? 'Testando…' : 'Testar conexão'}
@@ -260,15 +233,9 @@ export default function ZabbixSettings() {
           <button
             type="button"
             onClick={() => sync.mutate()}
-            className="btn-ghost disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={demo || sync.isPending || !fullyConfigured}
-            title={
-              demo
-                ? 'Desabilitado no ambiente de demonstração'
-                : !fullyConfigured
-                ? 'Configure tudo antes'
-                : ''
-            }
+            className="btn-ghost"
+            disabled={sync.isPending || !fullyConfigured}
+            title={!fullyConfigured ? 'Configure tudo antes' : ''}
           >
             <RefreshCcw
               size={14}
@@ -276,11 +243,6 @@ export default function ZabbixSettings() {
             />
             {sync.isPending ? 'Sincronizando…' : 'Sincronizar agora'}
           </button>
-          {demo && (
-            <p className="text-xs text-slate-400">
-              Configuração somente leitura no ambiente de demonstração.
-            </p>
-          )}
           {cfg?.lastTestedAt && (
             <span className="text-xs text-slate-500 ml-auto">
               último teste:{' '}

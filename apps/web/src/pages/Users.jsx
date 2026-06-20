@@ -18,15 +18,6 @@ export default function Users() {
   const { user: me } = useAuth();
   const qc = useQueryClient();
   const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: api.users });
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita). Escondemos as ações de gestão de usuários (reset/desativar/excluir/
-  // trocar papel/criar) pra não confundir nem passar impressão de insegurança.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
   const [showCreate, setShowCreate] = useState(false);
   const [linkInfo, setLinkInfo] = useState(null);
 
@@ -70,11 +61,9 @@ export default function Users() {
         title="Usuários"
         description="ADMIN pode editar tudo (incluindo criar usuários). READER só consulta. Ao criar uma conta sem senha, geramos um link único de definição."
         actions={
-          demo ? null : (
-            <button onClick={() => setShowCreate(true)} className="btn-primary">
-              <UserPlus size={14} /> Novo usuário
-            </button>
-          )
+          <button onClick={() => setShowCreate(true)} className="btn-primary">
+            <UserPlus size={14} /> Novo usuário
+          </button>
         }
       />
 
@@ -100,11 +89,11 @@ export default function Users() {
                 <td className="px-3 py-2">
                   <select
                     value={u.role}
-                    disabled={u.id === me?.id || demo}
+                    disabled={u.id === me?.id}
                     onChange={(e) =>
                       update.mutate({ id: u.id, data: { role: e.target.value } })
                     }
-                    className="input py-0.5 text-xs w-auto disabled:opacity-60"
+                    className="input py-0.5 text-xs w-auto"
                   >
                     <option value="ADMIN">ADMIN</option>
                     <option value="READER">READER</option>
@@ -132,39 +121,33 @@ export default function Users() {
                     : 'nunca'}
                 </td>
                 <td className="px-3 py-2 text-right whitespace-nowrap">
-                  {demo ? (
-                    <span className="text-xs text-slate-400 italic">somente leitura</span>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => reset.mutate(u.id)}
-                        title="Gerar link de reset"
-                        className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 mr-1"
-                      >
-                        <KeyRound size={12} className="inline" /> reset
-                      </button>
-                      <button
-                        onClick={() =>
-                          update.mutate({ id: u.id, data: { active: !u.active } })
-                        }
-                        disabled={u.id === me?.id}
-                        title={u.active ? 'Desativar' : 'Reativar'}
-                        className="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 mr-1"
-                      >
-                        <Power size={12} className="inline" /> {u.active ? 'desativar' : 'reativar'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Remover ${u.email}?`)) remove.mutate(u.id);
-                        }}
-                        disabled={u.id === me?.id}
-                        title="Remover"
-                        className="text-rose-500 hover:text-rose-700 disabled:opacity-30 p-1"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </>
-                  )}
+                  <button
+                    onClick={() => reset.mutate(u.id)}
+                    title="Gerar link de reset"
+                    className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 mr-1"
+                  >
+                    <KeyRound size={12} className="inline" /> reset
+                  </button>
+                  <button
+                    onClick={() =>
+                      update.mutate({ id: u.id, data: { active: !u.active } })
+                    }
+                    disabled={u.id === me?.id}
+                    title={u.active ? 'Desativar' : 'Reativar'}
+                    className="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 mr-1"
+                  >
+                    <Power size={12} className="inline" /> {u.active ? 'desativar' : 'reativar'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Remover ${u.email}?`)) remove.mutate(u.id);
+                    }}
+                    disabled={u.id === me?.id}
+                    title="Remover"
+                    className="text-rose-500 hover:text-rose-700 disabled:opacity-30 p-1"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </td>
               </tr>
             ))}

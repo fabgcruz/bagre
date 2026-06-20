@@ -253,7 +253,7 @@ function IdlePublicIpsTable({ items }) {
   );
 }
 
-function AccountCard({ account, onSync, onTest, onDelete, syncing, demo }) {
+function AccountCard({ account, onSync, onTest, onDelete, syncing }) {
   const [expanded, setExpanded] = useState(false);
   const info = PROVIDER_INFO[account.provider] || PROVIDER_INFO.AWS;
   const { data: runs = [] } = useQuery({
@@ -299,25 +299,21 @@ function AccountCard({ account, onSync, onTest, onDelete, syncing, demo }) {
       )}
 
       <div className="flex items-center gap-2 mt-4">
-        {!demo && (
-          <>
-            <button
-              onClick={() => onSync(account.id)}
-              disabled={syncing}
-              className="btn-primary text-xs inline-flex items-center gap-1 disabled:opacity-50"
-            >
-              <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
-              {syncing ? 'Sincronizando…' : 'Sync agora'}
-            </button>
-            <button
-              onClick={() => onTest(account.id)}
-              className="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 inline-flex items-center gap-1"
-            >
-              <Play size={12} />
-              Test creds
-            </button>
-          </>
-        )}
+        <button
+          onClick={() => onSync(account.id)}
+          disabled={syncing}
+          className="btn-primary text-xs inline-flex items-center gap-1 disabled:opacity-50"
+        >
+          <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? 'Sincronizando…' : 'Sync agora'}
+        </button>
+        <button
+          onClick={() => onTest(account.id)}
+          className="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 inline-flex items-center gap-1"
+        >
+          <Play size={12} />
+          Test creds
+        </button>
         <button
           onClick={() => setExpanded((e) => !e)}
           className="text-xs px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 inline-flex items-center gap-1 text-slate-600"
@@ -326,16 +322,12 @@ function AccountCard({ account, onSync, onTest, onDelete, syncing, demo }) {
           Histórico
         </button>
         <div className="flex-1" />
-        {demo ? (
-          <span className="text-xs text-slate-400 italic">somente leitura</span>
-        ) : (
-          <button
-            onClick={() => onDelete(account.id, account.displayName)}
-            className="text-xs px-2 py-1.5 rounded text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 inline-flex items-center gap-1"
-          >
-            <Trash2 size={12} />
-          </button>
-        )}
+        <button
+          onClick={() => onDelete(account.id, account.displayName)}
+          className="text-xs px-2 py-1.5 rounded text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 inline-flex items-center gap-1"
+        >
+          <Trash2 size={12} />
+        </button>
       </div>
 
       {expanded && (
@@ -697,16 +689,6 @@ export default function CloudAccounts() {
   const [addOpen, setAddOpen] = useState(false);
   const [syncing, setSyncing] = useState(null);
 
-  // Em modo demonstração tudo é somente-leitura (a API bloqueia toda escrita).
-  // Escondemos as ações de mutação (conectar/sync/test/excluir conta) pra não
-  // confundir nem passar impressão de insegurança.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
-
   const { data: providers } = useQuery({
     queryKey: ['cloud-providers'],
     queryFn: api.cloudProviders,
@@ -762,12 +744,10 @@ export default function CloudAccounts() {
         title="Cloud Accounts"
         description="Conecte AWS / Azure / GCP e o Bagre importa subnets e IPs automaticamente. Use a auditoria abaixo para identificar IPs públicos ociosos e decidir o que pode ser liberado."
         actions={
-          demo ? null : (
-            <button onClick={() => setAddOpen(true)} className="btn-primary inline-flex items-center gap-1.5">
-              <Plus size={14} />
-              Conectar conta
-            </button>
-          )
+          <button onClick={() => setAddOpen(true)} className="btn-primary inline-flex items-center gap-1.5">
+            <Plus size={14} />
+            Conectar conta
+          </button>
         }
       />
 
@@ -781,12 +761,10 @@ export default function CloudAccounts() {
           <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">
             Conecte sua AWS em menos de 2 minutos. Cria-se um IAM User (ou Role) com permissão read-only, cola credenciais aqui — o Bagre testa e sincroniza na hora.
           </p>
-          {!demo && (
-            <button onClick={() => setAddOpen(true)} className="btn-primary inline-flex items-center gap-1.5">
-              <Plus size={14} />
-              Conectar primeira conta
-            </button>
-          )}
+          <button onClick={() => setAddOpen(true)} className="btn-primary inline-flex items-center gap-1.5">
+            <Plus size={14} />
+            Conectar primeira conta
+          </button>
         </div>
       ) : (
         <div className="grid lg:grid-cols-2 gap-4">
@@ -794,7 +772,6 @@ export default function CloudAccounts() {
             <AccountCard
               key={a.id}
               account={a}
-              demo={demo}
               syncing={syncing === a.id}
               onSync={(id) => syncMut.mutate(id)}
               onTest={(id) => testMut.mutate(id)}

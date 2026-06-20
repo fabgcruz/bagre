@@ -78,16 +78,6 @@ export default function Sites() {
     queryKey: ['sites'],
     queryFn: api.sites,
   });
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita). Escondemos as ações de criar/editar/excluir site e subnet pra não
-  // confundir nem passar impressão de insegurança.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
-  const canWrite = canEdit && !demo;
   const [q, setQ] = useState('');
 
   const [siteModal, setSiteModal] = useState({ open: false, initial: null });
@@ -193,7 +183,7 @@ export default function Sites() {
         title="Sites & Subnets"
         description="Cada site é uma localização (data center, escritório). Dentro dele ficam as subnets — clique em uma para ver e editar os IPs."
         actions={
-          canWrite && (
+          canEdit && (
             <button
               onClick={() => {
                 setFormError(null);
@@ -241,7 +231,7 @@ export default function Sites() {
                       <div className="text-xs text-slate-500 truncate">{site.name}</div>
                     )}
                   </div>
-                  {canWrite && (
+                  {canEdit && (
                     <ActionMenu
                       items={[
                         {
@@ -326,7 +316,7 @@ export default function Sites() {
                             className="text-slate-300 group-hover:text-brand-500 transition shrink-0"
                           />
                         </Link>
-                        {canWrite && (
+                        {canEdit && (
                           <ActionMenu
                             items={[
                               {
@@ -361,7 +351,7 @@ export default function Sites() {
                       </div>
                     );
                   })}
-                  {canWrite && site.subnets.length === 0 && (
+                  {canEdit && site.subnets.length === 0 && (
                     <button
                       onClick={() => {
                         setFormError(null);

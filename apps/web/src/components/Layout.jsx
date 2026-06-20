@@ -110,9 +110,10 @@ export default function Layout({ children }) {
   }, [isDemo]);
   useEffect(() => {
     setDemoBlockHandler(() =>
-      toast.info('Ambiente de demonstração — somente leitura. Nada é alterado aqui.', {
-        title: 'Ação desabilitada',
-      }),
+      toast.info(
+        'Isto é apenas uma demonstração — esta ação não altera nada. Baixe o Bagre para usar de verdade.',
+        { title: 'Somente demonstração' },
+      ),
     );
     return () => setDemoBlockHandler(() => {});
   }, [toast]);

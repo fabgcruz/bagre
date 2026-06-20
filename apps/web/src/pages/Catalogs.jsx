@@ -31,16 +31,7 @@ const DATACENTER_FIELDS = [
 export default function Catalogs() {
   const [tab, setTab] = useState('master');
   const { user } = useAuth();
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita). Escondemos as ações de gestão (criar/editar/excluir) pra não
-  // confundir nem passar impressão de insegurança.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
-  const canEdit = user?.role === 'ADMIN' && !demo;
+  const canEdit = user?.role === 'ADMIN';
 
   // Dynamic tabs: one per connected cloud account. Refetch periodically so
   // newly added accounts surface here without a page reload.
@@ -86,8 +77,8 @@ export default function Catalogs() {
         ))}
       </div>
 
-      {tab === 'master' && <MasterRanges canEdit={canEdit} demo={demo} />}
-      {tab === 'datacenter' && <DatacenterVlans canEdit={canEdit} demo={demo} />}
+      {tab === 'master' && <MasterRanges canEdit={canEdit} />}
+      {tab === 'datacenter' && <DatacenterVlans canEdit={canEdit} />}
       {tab.startsWith('cloud-') && (
         <CloudAccountSubnets
           accountId={cloudTabs.find((t) => t.id === tab)?.accountId}
@@ -217,14 +208,7 @@ function Toolbar({ canEdit, onNew, label }) {
   );
 }
 
-function ActionCell({ canEdit, demo, onEdit, onDelete }) {
-  if (demo) {
-    return (
-      <td className="px-3 py-1.5 text-right whitespace-nowrap">
-        <span className="text-xs text-slate-400 italic">somente leitura</span>
-      </td>
-    );
-  }
+function ActionCell({ canEdit, onEdit, onDelete }) {
   if (!canEdit) return null;
   return (
     <td className="px-3 py-1.5 text-right whitespace-nowrap">
@@ -246,7 +230,7 @@ function ActionCell({ canEdit, demo, onEdit, onDelete }) {
   );
 }
 
-function MasterRanges({ canEdit, demo }) {
+function MasterRanges({ canEdit }) {
   const crud = useCrud({
     key: 'master-ranges',
     list: api.masterRanges,
@@ -268,7 +252,7 @@ function MasterRanges({ canEdit, demo }) {
               <th className="px-3 py-2 text-left">CIDR</th>
               <th className="px-3 py-2 text-left">Descrição</th>
               <th className="px-3 py-2 text-left">Categoria</th>
-              {(canEdit || demo) && <th className="px-3 py-2 w-20" />}
+              {canEdit && <th className="px-3 py-2 w-20" />}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -279,7 +263,6 @@ function MasterRanges({ canEdit, demo }) {
                 <td className="px-3 py-1.5 text-slate-500">{r.category || '—'}</td>
                 <ActionCell
                   canEdit={canEdit}
-                  demo={demo}
                   onEdit={() => { setErr(null); setModal({ open: true, initial: r }); }}
                   onDelete={() => setConfirm({ open: true, id: r.id, label: r.cidr })}
                 />
@@ -324,7 +307,7 @@ function MasterRanges({ canEdit, demo }) {
   );
 }
 
-function DatacenterVlans({ canEdit, demo }) {
+function DatacenterVlans({ canEdit }) {
   const crud = useCrud({
     key: 'datacenter-vlans',
     list: api.datacenterVlans,
@@ -349,7 +332,7 @@ function DatacenterVlans({ canEdit, demo }) {
               <th className="px-3 py-2 text-left">Network</th>
               <th className="px-3 py-2 text-left">Range</th>
               <th className="px-3 py-2 text-left">Broadcast</th>
-              {(canEdit || demo) && <th className="px-3 py-2 w-20" />}
+              {canEdit && <th className="px-3 py-2 w-20" />}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -363,7 +346,6 @@ function DatacenterVlans({ canEdit, demo }) {
                 <td className="px-3 py-1.5 font-mono text-xs">{r.broadcast || '—'}</td>
                 <ActionCell
                   canEdit={canEdit}
-                  demo={demo}
                   onEdit={() => { setErr(null); setModal({ open: true, initial: r }); }}
                   onDelete={() => setConfirm({ open: true, id: r.id, label: r.name })}
                 />

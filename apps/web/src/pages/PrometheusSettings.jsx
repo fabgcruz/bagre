@@ -20,14 +20,6 @@ export default function PrometheusSettings() {
     queryKey: ['prometheus-config'],
     queryFn: api.prometheusConfig,
   });
-  // No ambiente de demonstração tudo é somente-leitura (a API bloqueia toda
-  // escrita). Desabilitamos salvar/testar/sincronizar e os campos do form.
-  const { data: appCfg } = useQuery({
-    queryKey: ['app-config'],
-    queryFn: api.config,
-    staleTime: 60_000,
-  });
-  const demo = !!appCfg?.demo?.enabled;
   const [form, setForm] = useState(null);
   const [jobsCsv, setJobsCsv] = useState('');
 
@@ -143,17 +135,15 @@ export default function PrometheusSettings() {
           <div className="flex flex-col gap-2 shrink-0">
             <button
               onClick={() => test.mutate()}
-              disabled={demo || test.isPending || !cfg.url}
-              title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
-              className="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={test.isPending || !cfg.url}
+              className="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 inline-flex items-center gap-1 disabled:opacity-50"
             >
               <Activity size={12} /> Testar conexão
             </button>
             <button
               onClick={() => sync.mutate()}
-              disabled={demo || sync.isPending || !cfg.url}
-              title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
-              className="btn-primary text-xs inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={sync.isPending || !cfg.url}
+              className="btn-primary text-xs inline-flex items-center gap-1 disabled:opacity-50"
             >
               <RefreshCcw size={12} className={sync.isPending ? 'animate-spin' : ''} />
               {sync.isPending ? 'Sincronizando…' : 'Sincronizar agora'}
@@ -166,8 +156,7 @@ export default function PrometheusSettings() {
         <div>
           <label className="text-xs font-medium text-slate-600 block mb-1">URL do Prometheus</label>
           <input
-            disabled={demo}
-            className="input w-full font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="input w-full font-mono text-sm"
             placeholder="http://prometheus.empresa.local:9090"
             value={form.url}
             onChange={(e) => update('url', e.target.value)}
@@ -185,9 +174,8 @@ export default function PrometheusSettings() {
               <button
                 type="button"
                 key={opt.id}
-                disabled={demo}
                 onClick={() => update('authType', opt.id)}
-                className={`text-left px-3 py-2 rounded border text-sm transition disabled:opacity-60 disabled:cursor-not-allowed ${
+                className={`text-left px-3 py-2 rounded border text-sm transition ${
                   form.authType === opt.id
                     ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/30'
                     : 'border-slate-200 hover:border-slate-300'
@@ -204,8 +192,7 @@ export default function PrometheusSettings() {
               <label className="text-xs font-medium text-slate-600 block mb-1">Bearer token</label>
               <input
                 type="password"
-                disabled={demo}
-                className="input w-full font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                className="input w-full font-mono text-sm"
                 placeholder={cfg.hasBearerToken ? '(salvo — deixe vazio pra manter)' : '••••••••'}
                 value={form.bearerToken}
                 onChange={(e) => update('bearerToken', e.target.value)}
@@ -218,8 +205,7 @@ export default function PrometheusSettings() {
               <div>
                 <label className="text-xs font-medium text-slate-600 block mb-1">Usuário</label>
                 <input
-                  disabled={demo}
-                  className="input w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="input w-full text-sm"
                   value={form.basicUsername}
                   onChange={(e) => update('basicUsername', e.target.value)}
                 />
@@ -228,8 +214,7 @@ export default function PrometheusSettings() {
                 <label className="text-xs font-medium text-slate-600 block mb-1">Senha</label>
                 <input
                   type="password"
-                  disabled={demo}
-                  className="input w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="input w-full text-sm"
                   placeholder={cfg.hasBasicPassword ? '(salva — deixe vazio pra manter)' : '••••••••'}
                   value={form.basicPassword}
                   onChange={(e) => update('basicPassword', e.target.value)}
@@ -244,8 +229,7 @@ export default function PrometheusSettings() {
             Filtro de jobs (CSV, vazio = todos)
           </label>
           <input
-            disabled={demo}
-            className="input w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            className="input w-full text-sm"
             placeholder="ex: node, kubernetes, snmp"
             value={jobsCsv}
             onChange={(e) => setJobsCsv(e.target.value)}
@@ -258,8 +242,7 @@ export default function PrometheusSettings() {
             <input
               type="number"
               min="1"
-              disabled={demo}
-              className="input w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input w-full text-sm"
               value={form.intervalMinutes}
               onChange={(e) => update('intervalMinutes', Number(e.target.value))}
             />
@@ -269,8 +252,7 @@ export default function PrometheusSettings() {
             <input
               type="number"
               min="1"
-              disabled={demo}
-              className="input w-full text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className="input w-full text-sm"
               value={form.staleAfterDays}
               onChange={(e) => update('staleAfterDays', Number(e.target.value))}
             />
@@ -280,25 +262,18 @@ export default function PrometheusSettings() {
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            disabled={demo}
             checked={form.enabled}
             onChange={(e) => update('enabled', e.target.checked)}
-            className="accent-brand-600 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="accent-brand-600"
           />
           <span className="text-sm">Sync automático ativo (roda a cada {form.intervalMinutes} min)</span>
         </label>
 
         <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          {demo && (
-            <p className="text-xs text-slate-400 mr-auto">
-              Configuração somente leitura no ambiente de demonstração.
-            </p>
-          )}
           <button
             type="submit"
-            disabled={demo || save.isPending}
-            title={demo ? 'Desabilitado no ambiente de demonstração' : ''}
-            className="btn-primary inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={save.isPending}
+            className="btn-primary inline-flex items-center gap-1 disabled:opacity-50"
           >
             <Save size={14} />
             {save.isPending ? 'Salvando…' : 'Salvar'}
