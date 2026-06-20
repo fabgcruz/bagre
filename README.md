@@ -46,7 +46,7 @@ Mais prints em [`docs/screenshots/`](docs/screenshots/).
 - **Cloud sync multi-provider** — conecta AWS / Azure / GCP simultaneamente, sincroniza VPCs/VNets/subnetworks, NICs e IPs públicos. Mostra IPs ociosos sangrando custo (relatório FinOps unificado).
 - **Descoberta automática via Zabbix e Prometheus** — hosts viram pending discoveries; aprovação em 1 clique
 - API REST para integração com Terraform, scripts próprios, OTEL
-- Login local + SSO via OIDC (Microsoft Entra ID, Keycloak, qualquer provider compatível)
+- Login local + SSO via OIDC (Microsoft Entra ID, Keycloak, qualquer provider compatível) + **LDAP / Active Directory on-premise** (bind nativo, papel mapeado pelos grupos do AD)
 - RBAC com perfis ADMIN/READER e wiki integrada via DokuWiki
 - Métricas Prometheus em `/metrics`
 - Trilha de auditoria com diff antes/depois de toda alteração
@@ -107,7 +107,7 @@ A pasta [`docs/`](docs/) contém guias detalhados:
 - [`02-instalacao.md`](docs/02-instalacao.md) — Subir do zero, requisitos
 - [`03-uso-diario.md`](docs/03-uso-diario.md) — Operação pelo usuário final
 - [`04-administracao.md`](docs/04-administracao.md) — Usuários, perfis, RBAC
-- [`05-integracoes.md`](docs/05-integracoes.md) — Zabbix, OIDC, Prometheus
+- [`05-integracoes.md`](docs/05-integracoes.md) — Zabbix, SSO/OIDC, LDAP/AD, Prometheus
 - [`06-api-rest.md`](docs/06-api-rest.md) — Endpoints com exemplos `curl`
 - [`07-operacao.md`](docs/07-operacao.md) — Backup, restore, troubleshooting
 - [`08-desenvolvimento.md`](docs/08-desenvolvimento.md) — Dev local, contribuir
