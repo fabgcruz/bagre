@@ -150,7 +150,10 @@ export function expandCidr(cidr, { includeNetwork = false, includeBroadcast = fa
   const total = broadcast - network + 1;
   if (total > 4096) {
     throw new Error(
-      `CIDR ${cidr} expandiria para ${total} IPs — limite é 4096. Quebre em subnets menores.`,
+      `O bloco ${cidr} tem ${total.toLocaleString('pt-BR')} IPs, acima do limite de 4.096 por sub-rede ` +
+        `(equivale a /20 ou menor). O Bagre rastreia cada IP individualmente, então blocos grandes como /16 ` +
+        `devem ser cadastrados como Range Mestre (Catálogos → Ranges Mestre) — e as sub-redes de trabalho ` +
+        `(ex.: /24) criadas dentro dele, onde os IPs são gerenciados.`,
     );
   }
   let start = network;
