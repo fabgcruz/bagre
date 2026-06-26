@@ -114,6 +114,10 @@ A pasta [`docs/`](docs/) contém guias detalhados:
 
 Versão renderizada em HTML único navegável: [`docs.html`](docs.html) (gerada por `node scripts/build-docs-html.mjs`).
 
+## Comunidade
+
+Dúvidas, ideias ou quer mostrar como usa o Bagre? Participe das **[GitHub Discussions](https://github.com/fabgcruz/bagre/discussions)** — é o canal oficial da comunidade (Ajuda/Q&A, Ideias, Show and tell, Anúncios). Comece pelo post de [boas-vindas](https://github.com/fabgcruz/bagre/discussions/84).
+
 ## Contribuindo
 
 Pull requests e issues são bem-vindos. Veja **[CONTRIBUTING.md](CONTRIBUTING.md)** para fluxo, convenções e onde achar coisas.
