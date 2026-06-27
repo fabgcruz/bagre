@@ -6,6 +6,7 @@ import cookie from '@fastify/cookie';
 
 import { prisma } from './db.js';
 import { ensureBootstrapAdmin, requireAuth, requireAdmin } from './auth.js';
+import { looksLikeApiToken, resolveApiToken } from './api-token.js';
 import { DEMO } from './demo-guard.js';
 import { registerSites } from './routes/sites.js';
 import { registerSubnets } from './routes/subnets.js';
@@ -18,6 +19,7 @@ import { registerIngest } from './routes/ingest.js';
 import { registerMetrics } from './routes/metrics.js';
 import { registerAuth } from './routes/auth.js';
 import { registerUsers } from './routes/users.js';
+import { registerApiTokens } from './routes/api-tokens.js';
 import { registerDevices } from './routes/devices.js';
 import { registerPendingDiscoveries } from './routes/pending-discoveries.js';
 import { registerAuditRoutes } from './routes/audit.js';
@@ -121,6 +123,42 @@ async function build() {
     }
 
     if (PUBLIC.has(url)) return;
+
+    // --- API token auth (automation: Terraform, K8s operator, CI) ---
+    // `Authorization: Bearer bagre_…` authenticates as a long-lived token instead
+    // of a user JWT. Tokens are scoped (read-only / read-write) and are NEVER
+    // allowed to manage users or other tokens — prevents privilege persistence.
+    const authz = req.headers.authorization || '';
+    const bearer = authz.startsWith('Bearer ') ? authz.slice(7).trim() : '';
+    if (looksLikeApiToken(bearer)) {
+      const tok = await resolveApiToken(bearer);
+      if (!tok) {
+        reply.code(401).send({ error: 'invalid or expired API token' });
+        return reply;
+      }
+      if (url.startsWith('/api/api-tokens') || url.startsWith('/api/users')) {
+        reply.code(403).send({ error: 'forbidden — API tokens cannot manage tokens or users' });
+        return reply;
+      }
+      const canWrite = tok.scope === 'READ_WRITE';
+      if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method) && !canWrite) {
+        reply.code(403).send({ error: 'forbidden — this API token is read-only' });
+        return reply;
+      }
+      req.user = {
+        id: null,
+        email: `api-token:${tok.name}`,
+        role: canWrite ? 'ADMIN' : 'READER',
+        name: `api-token:${tok.name}`,
+        viaApiToken: true,
+        apiTokenId: tok.id,
+        authProvider: 'api-token',
+        externalId: null,
+        externalGroups: [],
+      };
+      return; // authenticated via API token
+    }
+
     // Auth
     try {
       await req.jwtVerify();
@@ -168,6 +206,7 @@ async function build() {
 
   await registerAuth(app);
   await registerUsers(app);
+  await registerApiTokens(app);
   await registerDevices(app);
   await registerPendingDiscoveries(app);
   await registerAuditRoutes(app);

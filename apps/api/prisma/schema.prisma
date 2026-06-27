@@ -139,6 +139,32 @@ enum Role {
   READER
 }
 
+enum ApiTokenScope {
+  READ_ONLY
+  READ_WRITE
+}
+
+// Long-lived API tokens for automation (Terraform provider, K8s operator, CI).
+// Only the SHA-256 hash is stored — the plaintext is shown once at creation and
+// never again. Auth accepts these as `Authorization: Bearer bagre_…` alongside
+// user JWTs. Scope maps to read-only vs read-write; tokens can never manage
+// users or other tokens (enforced in the global auth hook).
+model ApiToken {
+  id          Int           @id @default(autoincrement())
+  name        String // human label, e.g. "terraform-ci"
+  tokenHash   String        @unique // sha256(hex) of the full token
+  prefix      String // visible id, e.g. "bagre_AbCdEf12" (never enough to use)
+  scope       ApiTokenScope @default(READ_WRITE)
+  createdById Int? // user who minted it (audit trail; not a hard FK)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime? // null = never expires
+  revokedAt   DateTime? // soft-revoke; auth lookup ignores revoked tokens
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([revokedAt])
+}
+
 model User {
   id             Int                  @id @default(autoincrement())
   email          String               @unique
