@@ -20,12 +20,53 @@ IPs da sua rede — de ambientes simples até infraestruturas híbridas complexa
 
 O bagre é um peixe que vive nas águas turvas e se orienta pelos bigodes
 sensíveis, detectando tudo ao seu redor. O Bagre IPAM segue a mesma lógica:
+enxerga o que está oculto na rede, detecta mudanças (IPs livres, hosts
+fantasmas, ranges fragmentados) e mantém tudo organizado — silencioso,
+resistente e eficiente.
 
-- **Enxerga** o que está oculto na rede
-- **Detecta** mudanças e oportunidades (IPs disponíveis, hosts fantasmas, ranges fragmentados)
-- **Funciona** em diferentes ambientes e infraestruturas
-- **Silencioso, resistente e eficiente**
-- **Mantém tudo organizado e sob controle**
+### Posicionamento
+
+O Bagre é um **IPAM leve e cloud-native**. Ele **não tenta ser um CMDB pesado**
+nem substituir um NetBox/phpIPAM já consolidado e rodando bem na sua empresa. O
+foco é **endereçamento + descoberta + visibilidade de nuvem**, simples de subir
+(`docker compose up`) e fácil de manter.
+
+> *"Não quer substituir um CMDB/IPAM já consolidado; é simples e aderente ao Cloud Native."*
+> — José Oliveira, Security Architect
+
+### Por que nasceu do zero?
+
+Cansaço da planilha de IPs e da fricção das opções existentes para um cenário
+**multi-cloud + monitoramento moderno**. Em vez de adaptar uma ferramenta
+pesada, o Bagre nasceu enxuto, com stack moderna (Node + React + Docker Compose)
+e já falando a língua de quem vive em nuvem.
+
+### Comparação honesta
+
+| | **Bagre** | **NetBox** | **phpIPAM** |
+|---|---|---|---|
+| Foco | IPAM cloud-native leve | DCIM + IPAM (source of truth) | IPAM clássico |
+| Stack | Node + React + Docker | Python/Django | PHP |
+| Subir | `docker compose up` | mais robusto e complexo | LAMP |
+| Cloud sync (AWS/Azure/GCP) + FinOps | ✅ nativo | ❌ (plugin/externo) | ❌ |
+| Descoberta via Zabbix/Prometheus | ✅ nativo | ❌ | ❌ |
+| LDAP/AD + SSO (OIDC) | ✅ | ✅ | ✅ |
+| DCIM (racks, cabos, energia) | ❌ (fora do escopo) | ✅ forte | parcial |
+| Ecossistema/plugins | jovem | ✅ maduro e enorme | maduro |
+| Licença | MIT | Apache 2.0 | GPL |
+
+**NetBox e phpIPAM são excelentes** — maduros e com comunidades enormes. Se você
+precisa de **DCIM completo** (racks, cabeamento, energia) ou já tem um
+source-of-truth consolidado, eles provavelmente atendem melhor.
+
+### Quando o Bagre brilha
+- Você vive em **nuvem** (AWS/Azure/GCP) e quer IPs **e** custo num lugar só.
+- Quer **descoberta automática** a partir do seu Zabbix/Prometheus.
+- Quer algo **leve, moderno e rápido de subir**, sem o peso de um CMDB.
+
+### Quando NÃO usar
+- Você já tem um **CMDB/IPAM corporativo consolidado** e satisfeito → o Bagre talvez não substitua.
+- Você precisa de **DCIM profundo** (racks, patch panels, energia) → o NetBox é mais forte aí.
 
 ## Screenshots
 
