@@ -51,6 +51,7 @@ const NAV_ADMIN = [
   { to: '/admin/pending-discoveries', label: 'Aprovações', icon: Inbox, badge: 'pending' },
   { to: '/admin/network-health', label: 'Saúde da rede', icon: Stethoscope },
   { to: '/admin/users', label: 'Usuários', icon: Users },
+  { to: '/admin/api-tokens', label: 'Tokens de API', icon: KeyRound },
   { to: '/admin/audit', label: 'Auditoria', icon: History },
   { to: '/integrations', label: 'Documentação API', icon: Plug },
 ];
