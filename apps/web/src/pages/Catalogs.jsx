@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Cloud, RefreshCw, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, Cloud, RefreshCw, ExternalLink, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { api, demoTryWrite } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -86,6 +86,42 @@ export default function Catalogs() {
         />
       )}
     </div>
+  );
+}
+
+function cidrToNumber(cidr) {
+  const ip = (cidr || '').split('/')[0];
+  const octets = ip.split('.').map(Number);
+  if (octets.length !== 4 || octets.some((n) => Number.isNaN(n))) return -1;
+  return octets.reduce((acc, octet) => acc * 256 + octet, 0);
+}
+
+function useSort(initialKey = null) {
+  const [sort, setSort] = useState({ key: initialKey, dir: 'asc' });
+  const toggle = (key) => {
+    setSort((prev) => (prev.key === key
+      ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { key, dir: 'asc' }));
+  };
+  return [sort, toggle];
+}
+
+function SortableTh({ label, sortKey, sort, onSort, className = '' }) {
+  const active = sort.key === sortKey;
+  return (
+    <th
+      className={`px-3 py-2 text-left cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 ${className}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ? (
+          sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+        ) : (
+          <ArrowUpDown size={12} className="opacity-30" />
+        )}
+      </span>
+    </th>
   );
 }
 
@@ -241,6 +277,22 @@ function MasterRanges({ canEdit }) {
   const [modal, setModal] = useState({ open: false, initial: null });
   const [confirm, setConfirm] = useState({ open: false, id: null, label: '' });
   const [err, setErr] = useState(null);
+  const [sort, toggleSort] = useSort();
+
+  const sortedData = useMemo(() => {
+    if (!sort.key) return crud.data;
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    return [...crud.data].sort((a, b) => {
+      if (sort.key === 'cidr') {
+        return (cidrToNumber(a.cidr) - cidrToNumber(b.cidr)) * dir;
+      }
+      const av = (a[sort.key] || '').toLowerCase();
+      const bv = (b[sort.key] || '').toLowerCase();
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+  }, [crud.data, sort]);
 
   return (
     <div>
@@ -249,14 +301,14 @@ function MasterRanges({ canEdit }) {
         <table className="w-full text-sm table-zebra">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase text-slate-500">
             <tr>
-              <th className="px-3 py-2 text-left">CIDR</th>
-              <th className="px-3 py-2 text-left">Descrição</th>
-              <th className="px-3 py-2 text-left">Categoria</th>
+              <SortableTh label="CIDR" sortKey="cidr" sort={sort} onSort={toggleSort} />
+              <SortableTh label="Descrição" sortKey="description" sort={sort} onSort={toggleSort} />
+              <SortableTh label="Categoria" sortKey="category" sort={sort} onSort={toggleSort} />
               {canEdit && <th className="px-3 py-2 w-20" />}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {crud.data.map((r) => (
+            {sortedData.map((r) => (
               <tr key={r.id}>
                 <td className="px-3 py-1.5 font-mono text-xs">{r.cidr}</td>
                 <td className="px-3 py-1.5">{r.description || '—'}</td>
