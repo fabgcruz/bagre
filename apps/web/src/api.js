@@ -212,6 +212,14 @@ export const api = {
   testLdapConfig: () =>
     request('/admin/ldap-config/test', { method: 'POST' }),
 
+  // API tokens for automation (Terraform provider, K8s operator, CI). The
+  // plaintext token is only present in the createApiToken response.
+  apiTokens: () => request('/api-tokens'),
+  createApiToken: (data) =>
+    request('/api-tokens', { method: 'POST', body: JSON.stringify(data) }),
+  revokeApiToken: (id) =>
+    request(`/api-tokens/${id}`, { method: 'DELETE' }),
+
   health: () => request('/health'),
   stats: () => request('/stats'),
   statsBySite: () => request('/stats/by-site'),
