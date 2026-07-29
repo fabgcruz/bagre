@@ -1,0 +1,7 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Artefatos de build da collection
+*.tar.gz
+tests/output/

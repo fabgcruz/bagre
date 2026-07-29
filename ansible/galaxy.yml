@@ -1,0 +1,28 @@
+namespace: bagre
+name: ipam
+version: 1.0.0
+readme: README.md
+authors:
+  - Fabricio Cruz (@fabgcruz)
+description: >-
+  Automatize o Bagre IPAM com Ansible — gerencie sites, subnets, IPs, devices,
+  master ranges, regras de validação, contas cloud e usuários, além de um
+  inventário dinâmico e um lookup de próximo IP livre.
+license:
+  - GPL-3.0-or-later
+tags:
+  - bagre
+  - ipam
+  - networking
+  - ipaddress
+  - infrastructure
+  - cloud
+  - devops
+repository: https://github.com/fabgcruz/bagre
+documentation: https://github.com/fabgcruz/bagre/tree/main/ansible
+homepage: https://bagre.dev
+issues: https://github.com/fabgcruz/bagre/issues
+build_ignore:
+  - .github
+  - tests/output
+  - "*.tar.gz"

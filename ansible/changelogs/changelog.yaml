@@ -1,0 +1,9 @@
+ancestor: null
+releases:
+  1.0.0:
+    release_date: '2026-07-29'
+    changes:
+      release_summary: >-
+        Primeira versão da collection bagre.ipam — módulos para sites, subnets,
+        IPs, devices, master ranges, regras de validação e contas cloud, além do
+        inventário dinâmico e do lookup de próximo IP livre.

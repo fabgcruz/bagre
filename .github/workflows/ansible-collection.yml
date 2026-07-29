@@ -1,0 +1,57 @@
+name: Ansible Collection (bagre.ipam)
+
+on:
+  push:
+    branches: [main]
+    paths: ['ansible/**', '.github/workflows/ansible-collection.yml']
+    tags: ['ansible-v*']
+  pull_request:
+    paths: ['ansible/**', '.github/workflows/ansible-collection.yml']
+
+jobs:
+  sanity:
+    name: Build + Sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instala ansible-core
+        run: pip install ansible-core
+
+      - name: Coloca a collection no layout esperado
+        run: |
+          mkdir -p "${{ runner.temp }}/ansible_collections/bagre/ipam"
+          cp -r ansible/. "${{ runner.temp }}/ansible_collections/bagre/ipam/"
+
+      - name: Build da collection
+        working-directory: ${{ runner.temp }}/ansible_collections/bagre/ipam
+        run: ansible-galaxy collection build --output-path /tmp/build
+
+      - name: Sanity tests
+        working-directory: ${{ runner.temp }}/ansible_collections/bagre/ipam
+        run: ansible-test sanity --venv --python 3.11
+
+  publish:
+    name: Publica no Ansible Galaxy
+    needs: sanity
+    if: startsWith(github.ref, 'refs/tags/ansible-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install ansible-core
+      - name: Build
+        working-directory: ansible
+        run: ansible-galaxy collection build --output-path /tmp/build
+      - name: Publish
+        env:
+          GALAXY_TOKEN: ${{ secrets.ANSIBLE_GALAXY_TOKEN }}
+        run: |
+          ansible-galaxy collection publish /tmp/build/bagre-ipam-*.tar.gz \
+            --api-key "$GALAXY_TOKEN"

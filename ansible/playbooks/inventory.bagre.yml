@@ -1,0 +1,16 @@
+---
+# Exemplo de inventário dinâmico do Bagre.
+# Uso:
+#   export BAGRE_TOKEN=bagre_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#   ansible-inventory -i playbooks/inventory.bagre.yml --graph
+plugin: bagre.ipam.bagre
+endpoint: https://ipam.example.com
+# token vem da variável de ambiente BAGRE_TOKEN
+statuses:
+  - USED
+  - RESERVED
+keyed_groups:
+  - key: bagre_type
+    prefix: tipo
+compose:
+  ansible_host: bagre_address
