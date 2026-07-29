@@ -1,0 +1,42 @@
+---
+# Exemplo de uso da collection bagre.ipam
+# Rode com:
+#   export BAGRE_ENDPOINT=https://ipam.example.com
+#   export BAGRE_TOKEN=bagre_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+#   ansible-playbook playbooks/exemplo.yml
+- name: Provisiona rede no Bagre IPAM
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Garante o site DC1
+      bagre.ipam.site:
+        code: DC1
+        name: Data Center 1
+        state: present
+      register: site
+
+    - name: Garante a subnet de produção
+      bagre.ipam.subnet:
+        site_id: "{{ site.resource.id }}"
+        name: LAN-PROD
+        cidr: 10.150.5.0/24
+        vlan_id: 510
+        state: present
+
+    - name: Descobre o próximo IP livre
+      bagre.ipam.next_free_ip:
+        subnet_cidr: 10.150.5.0/24
+      register: livre
+
+    - name: Reserva e nomeia esse IP
+      bagre.ipam.ip:
+        subnet_cidr: 10.150.5.0/24
+        address: "{{ livre.ip.address }}"
+        hostname: srv-web-01
+        type: Servidor
+        function: Web
+        state: present
+
+    - name: Mostra o resultado
+      ansible.builtin.debug:
+        msg: "IP {{ livre.ip.address }} atribuído a srv-web-01"
