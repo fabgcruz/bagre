@@ -6,6 +6,7 @@ Uma solução leve e poderosa para gerenciar, organizar e monitorar todos os
 IPs da sua rede — de ambientes simples até infraestruturas híbridas complexas.
 
 [![Latest release](https://img.shields.io/github/v/release/fabgcruz/bagre?label=release&color=blue)](https://github.com/fabgcruz/bagre/releases/latest)
+[![Ansible Galaxy](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgalaxy.ansible.com%2Fapi%2Fv3%2Fplugin%2Fansible%2Fcontent%2Fpublished%2Fcollections%2Findex%2Fbagre%2Fipam%2F&query=%24.highest_version.version&label=galaxy&prefix=v&color=EE0000&logo=ansible)](https://galaxy.ansible.com/ui/repo/published/bagre/ipam/)
 [![CI](https://img.shields.io/github/actions/workflow/status/fabgcruz/bagre/ci.yml?branch=main&label=CI)](https://github.com/fabgcruz/bagre/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/fabgcruz/bagre?style=flat&color=yellow)](https://github.com/fabgcruz/bagre/stargazers)
