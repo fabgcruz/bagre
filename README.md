@@ -123,6 +123,23 @@ Abra http://localhost:3000 e faça login com o e-mail/senha definidos no `.env`.
 | Métricas Prometheus | http://localhost:3001/metrics |
 | Health check | http://localhost:3001/api/health |
 
+## Automação & IaC
+
+O Bagre foi feito para ser operado por automação, não só pela UI. Gere um
+**token de API** (`bagre_…`) em *Administração → API Tokens* e use uma destas
+integrações:
+
+- **Ansible** — collection [`bagre.ipam`](https://galaxy.ansible.com/ui/repo/published/bagre/ipam/)
+  no Ansible Galaxy. Módulos para sites, subnets, IPs e devices, inventário
+  dinâmico e lookup de próximo IP livre.
+  ```bash
+  ansible-galaxy collection install bagre.ipam
+  ```
+- **Terraform / OpenTofu** — [`terraform-provider-bagre`](https://github.com/fabgcruz/terraform-provider-bagre)
+  para gerenciar recursos do Bagre como código.
+
+Ambos usam as mesmas variáveis de ambiente: `BAGRE_ENDPOINT` e `BAGRE_TOKEN`.
+
 ## Linha do tempo e evolução
 
 | Versão | Data | Highlights |
