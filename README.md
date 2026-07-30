@@ -6,6 +6,7 @@ Uma solução leve e poderosa para gerenciar, organizar e monitorar todos os
 IPs da sua rede — de ambientes simples até infraestruturas híbridas complexas.
 
 [![Latest release](https://img.shields.io/github/v/release/fabgcruz/bagre?label=release&color=blue)](https://github.com/fabgcruz/bagre/releases/latest)
+[![Ansible Galaxy](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgalaxy.ansible.com%2Fapi%2Fv3%2Fplugin%2Fansible%2Fcontent%2Fpublished%2Fcollections%2Findex%2Fbagre%2Fipam%2F&query=%24.highest_version.version&label=galaxy&prefix=v&color=EE0000&logo=ansible)](https://galaxy.ansible.com/ui/repo/published/bagre/ipam/)
 [![CI](https://img.shields.io/github/actions/workflow/status/fabgcruz/bagre/ci.yml?branch=main&label=CI)](https://github.com/fabgcruz/bagre/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/fabgcruz/bagre?style=flat&color=yellow)](https://github.com/fabgcruz/bagre/stargazers)
@@ -121,6 +122,23 @@ Abra http://localhost:3000 e faça login com o e-mail/senha definidos no `.env`.
 | API REST | http://localhost:3001 |
 | Métricas Prometheus | http://localhost:3001/metrics |
 | Health check | http://localhost:3001/api/health |
+
+## Automação & IaC
+
+O Bagre foi feito para ser operado por automação, não só pela UI. Gere um
+**token de API** (`bagre_…`) em *Administração → API Tokens* e use uma destas
+integrações:
+
+- **Ansible** — collection [`bagre.ipam`](https://galaxy.ansible.com/ui/repo/published/bagre/ipam/)
+  no Ansible Galaxy. Módulos para sites, subnets, IPs e devices, inventário
+  dinâmico e lookup de próximo IP livre.
+  ```bash
+  ansible-galaxy collection install bagre.ipam
+  ```
+- **Terraform / OpenTofu** — [`terraform-provider-bagre`](https://github.com/fabgcruz/terraform-provider-bagre)
+  para gerenciar recursos do Bagre como código.
+
+Ambos usam as mesmas variáveis de ambiente: `BAGRE_ENDPOINT` e `BAGRE_TOKEN`.
 
 ## Linha do tempo e evolução
 
