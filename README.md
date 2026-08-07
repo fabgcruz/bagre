@@ -15,6 +15,8 @@ IPs da sua rede — de ambientes simples até infraestruturas híbridas complexa
 [![Last commit](https://img.shields.io/github/last-commit/fabgcruz/bagre)](https://github.com/fabgcruz/bagre/commits/main)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/fabgcruz/bagre/pulls)
 
+> ⭐ **Curtiu o Bagre? Deixe uma estrela!** Leva 1 segundo e ajuda muito o projeto a crescer e alcançar mais gente. 🐟
+
 ---
 
 ## Por que Bagre?
@@ -180,6 +182,10 @@ Dúvidas, ideias ou quer mostrar como usa o Bagre? Participe das **[GitHub Discu
 ### Agradecimentos
 
 Um obrigado especial ao **[@hendersonandrade](https://github.com/hendersonandrade)** — **primeiro contribuidor da comunidade** do Bagre. 🐟🙏
+
+### Star history
+
+[![Star History Chart](https://api.star-history.com/svg?repos=fabgcruz/bagre&type=Date)](https://star-history.com/#fabgcruz/bagre&Date)
 
 ## Contribuindo
 
