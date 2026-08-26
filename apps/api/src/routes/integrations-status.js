@@ -134,6 +134,9 @@ function deriveOverall(integrations) {
   // Stale check: any enabled integration without recent sync within 2× interval
   const stale = integrations.find((i) => {
     if (!i.enabled) return false;
+    // Provedores de autenticação (LDAP/OIDC) não sincronizam — são apenas testados.
+    // Sem intervalMinutes, não entram na checagem de "sync atrasado".
+    if (i.intervalMinutes == null) return false;
     if (!i.lastSync?.at) return true;
     const age = ageMs(i.lastSync.at);
     const limit = (i.intervalMinutes || 15) * 60_000 * 2;
