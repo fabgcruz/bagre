@@ -22,6 +22,7 @@ import SsoCallback from './pages/SsoCallback.jsx';
 import ZabbixSettings from './pages/ZabbixSettings.jsx';
 import PrometheusSettings from './pages/PrometheusSettings.jsx';
 import DnsSettings from './pages/DnsSettings.jsx';
+import TopDeskSettings from './pages/TopDeskSettings.jsx';
 import ValidationRules from './pages/ValidationRules.jsx';
 import NetworkHealth from './pages/NetworkHealth.jsx';
 import IntegrationsStatus from './pages/IntegrationsStatus.jsx';
@@ -162,6 +163,14 @@ export default function App() {
                   element={
                     <Protected role="ADMIN">
                       <DnsSettings />
+                    </Protected>
+                  }
+                />
+                <Route
+                  path="/admin/integrations/topdesk"
+                  element={
+                    <Protected role="ADMIN">
+                      <TopDeskSettings />
                     </Protected>
                   }
                 />

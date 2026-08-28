@@ -29,6 +29,7 @@ import { registerZabbixRoutes } from './routes/zabbix.js';
 import { registerPrometheusRoutes } from './routes/prometheus.js';
 import { registerCidrRoutes } from './routes/cidr.js';
 import { registerDnsRoutes } from './routes/dns.js';
+import { registerTopDeskRoutes } from './routes/topdesk.js';
 import { registerValidationRoutes } from './routes/validation.js';
 import { registerNetworkHealthRoutes } from './routes/network-health.js';
 import { registerIntegrationsStatusRoutes } from './routes/integrations-status.js';
@@ -216,6 +217,7 @@ async function build() {
   await registerPrometheusRoutes(app);
   await registerCidrRoutes(app);
   await registerDnsRoutes(app);
+  await registerTopDeskRoutes(app);
   await registerValidationRoutes(app);
   await registerNetworkHealthRoutes(app);
   await registerIntegrationsStatusRoutes(app);

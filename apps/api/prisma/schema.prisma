@@ -211,29 +211,29 @@ model OidcConfig {
 // Autenticação LDAP / Active Directory on-premises (bind direto, sem broker).
 // O login local (e o SSO/OIDC) continuam funcionando em paralelo — anti-lockout.
 model LdapConfig {
-  id              Int       @id @default(1)
-  enabled         Boolean   @default(false)
-  url             String? // ldap://host:389 ou ldaps://host:636
-  startTls        Boolean   @default(false) // StartTLS em cima do ldap:// (alternativa ao ldaps://)
+  id                    Int       @id @default(1)
+  enabled               Boolean   @default(false)
+  url                   String? // ldap://host:389 ou ldaps://host:636
+  startTls              Boolean   @default(false) // StartTLS em cima do ldap:// (alternativa ao ldaps://)
   // TLS: validação ON por padrão (boa prática). caCert permite confiar na CA
   // interna do AD (AD CS) SEM desligar a validação — o jeito seguro on-premise.
-  tlsRejectUnauthorized Boolean @default(true) // false = NÃO valida o cert (inseguro, só lab)
-  caCert          String? // PEM da CA que assina o cert do LDAPS (cert público, não é segredo)
-  bindDn          String? // service account p/ buscar usuários (ex: CN=svc-bagre,OU=svc,DC=corp,DC=local)
-  bindPassword    String? // senha do service account — nunca retornada crua à UI
-  baseDn          String? // base de busca (ex: DC=corp,DC=local)
-  userFilter      String    @default("(sAMAccountName={username})") // {username} é substituído no login
-  emailAttr       String    @default("mail")
-  nameAttr        String    @default("displayName")
-  groupAttr       String    @default("memberOf") // atributo do usuário que lista os grupos (DNs)
-  adminGroups     String[]  @default([]) // DNs de grupos que concedem ADMIN
-  autoProvision   Boolean   @default(true) // cria o usuário local no 1º login
-  defaultRole     Role      @default(READER)
-  lastTestedAt    DateTime?
-  lastTestStatus  String? // ok | error
-  lastTestMessage String?
-  updatedAt       DateTime  @updatedAt
-  createdAt       DateTime  @default(now())
+  tlsRejectUnauthorized Boolean   @default(true) // false = NÃO valida o cert (inseguro, só lab)
+  caCert                String? // PEM da CA que assina o cert do LDAPS (cert público, não é segredo)
+  bindDn                String? // service account p/ buscar usuários (ex: CN=svc-bagre,OU=svc,DC=corp,DC=local)
+  bindPassword          String? // senha do service account — nunca retornada crua à UI
+  baseDn                String? // base de busca (ex: DC=corp,DC=local)
+  userFilter            String    @default("(sAMAccountName={username})") // {username} é substituído no login
+  emailAttr             String    @default("mail")
+  nameAttr              String    @default("displayName")
+  groupAttr             String    @default("memberOf") // atributo do usuário que lista os grupos (DNs)
+  adminGroups           String[]  @default([]) // DNs de grupos que concedem ADMIN
+  autoProvision         Boolean   @default(true) // cria o usuário local no 1º login
+  defaultRole           Role      @default(READER)
+  lastTestedAt          DateTime?
+  lastTestStatus        String? // ok | error
+  lastTestMessage       String?
+  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime  @default(now())
 }
 
 model PasswordResetToken {
@@ -353,6 +353,48 @@ model PrometheusConfig {
   lastSyncStatus  String? // ok | error
   lastSyncMessage String?
   lastSyncStats   Json?
+  // Connection test state
+  lastTestedAt    DateTime?
+  lastTestStatus  String?
+  lastTestMessage String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// Single-row config (id=1) for the TopDesk ITSM integration.
+// Push (IPAM -> TopDesk): publica os IPs/hosts do Bagre como Ativos (CIs) no
+// Asset Management do TopDesk. Segue o mesmo modelo do DNS: preview do diff +
+// aplicação manual, e só mexe nos assets que o Bagre gerencia.
+//
+// Estratégia "template dedicado": todos os ativos sincronizados vivem sob
+// `assetTemplateId`. Esse template é o conjunto gerenciado pelo Bagre — o sync
+// nunca toca em CIs de outros templates (feitos à mão). A deduplicação é feita
+// consultando os assets desse template e casando pelo valor do campo de IP.
+//
+// API ref: https://developers.topdesk.com/explorer/?page=assets
+//   GET   /tas/api/assetmgmt/templates                          lista templates
+//   GET   /tas/api/assetmgmt/assets?templateId=..&fields=..     consulta ativos
+//   POST  /tas/api/assetmgmt/assets/templateId/{templateId}     cria ativo
+//   PATCH /tas/api/assetmgmt/assets/templateId/{templateId}/{id} atualiza ativo
+// Auth: Basic (usuário + application password).
+model TopDeskConfig {
+  id              Int       @id @default(1)
+  enabled         Boolean   @default(false)
+  baseUrl         String? // ex: https://empresa.topdesk.net
+  username        String? // operador/pessoa da API
+  password        String? // application password (Basic auth)
+  // Template dedicado onde os ativos do Bagre são criados (o conjunto gerenciado).
+  assetTemplateId String?
+  // IDs (nomes internos) dos campos do template que recebem os dados do Bagre.
+  // Configuráveis porque variam por instalação/template do TopDesk.
+  ipFieldId       String? // campo que recebe o endereço IP (ex: "ip-address")
+  hostnameFieldId String? // campo opcional que recebe o hostname
+  intervalMinutes Int       @default(60)
+  // Sync state
+  lastSyncAt      DateTime?
+  lastSyncStatus  String? // ok | error
+  lastSyncMessage String?
+  lastSyncStats   Json? // { created, updated, skipped, errors }
   // Connection test state
   lastTestedAt    DateTime?
   lastTestStatus  String?

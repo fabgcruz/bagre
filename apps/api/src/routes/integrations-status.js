@@ -3,6 +3,7 @@ import { requireAdmin } from '../auth.js';
 import { testConnection as testZabbix, getConfig as getZabbixCfg, isConfigured as isZabbixConfigured } from '../integrations/zabbix.js';
 import { getConfig as getPromCfg, isConfigured as isPromConfigured } from '../integrations/prometheus.js';
 import * as powerdns from '../integrations/dns/powerdns.js';
+import { getConfig as getTopDeskCfg, isConfigured as isTopDeskConfigured } from '../integrations/topdesk/topdesk.js';
 import { getConfig as getOidcCfg, isConfigured as isOidcConfigured, testDiscovery as testOidc } from '../auth-providers/oidc.js';
 import { getConfig as getLdapCfg, isConfigured as isLdapConfigured } from '../auth-providers/ldap.js';
 
@@ -82,6 +83,29 @@ async function dnsStatus() {
   };
 }
 
+async function topDeskStatus() {
+  const cfg = await getTopDeskCfg();
+  const configured = isTopDeskConfigured(cfg);
+  return {
+    key: 'topdesk',
+    name: 'TopDesk (ITSM)',
+    icon: '🎫',
+    description:
+      'Publica os IPs e hosts do IPAM como Ativos (CIs) no Asset Management do TopDesk — sua CMDB sempre batendo com a rede. Só mexe nos ativos que o Bagre gerencia.',
+    configured,
+    enabled: cfg.enabled,
+    lastTest: cfg.lastTestedAt
+      ? { at: cfg.lastTestedAt, ok: cfg.lastTestStatus === 'ok', message: cfg.lastTestMessage }
+      : null,
+    lastSync: cfg.lastSyncAt
+      ? { at: cfg.lastSyncAt, ok: cfg.lastSyncStatus === 'ok', message: cfg.lastSyncMessage, stats: cfg.lastSyncStats }
+      : null,
+    intervalMinutes: cfg.intervalMinutes,
+    configUrl: '/admin/integrations/topdesk',
+    healthEndpoint: '/api/admin/topdesk-config/test',
+  };
+}
+
 async function oidcStatus() {
   const cfg = await getOidcCfg();
   const configured = isOidcConfigured(cfg);
@@ -148,10 +172,11 @@ function deriveOverall(integrations) {
 
 export async function registerIntegrationsStatusRoutes(app) {
   app.get('/api/admin/integrations/status', { preHandler: requireAdmin }, async () => {
-    const [zabbix, prometheus, dns, oidc, ldap, events] = await Promise.all([
+    const [zabbix, prometheus, dns, topdesk, oidc, ldap, events] = await Promise.all([
       zabbixStatus(),
       prometheusStatus(),
       dnsStatus(),
+      topDeskStatus(),
       oidcStatus(),
       ldapStatus(),
       prisma.auditLog.findMany({
@@ -160,6 +185,7 @@ export async function registerIntegrationsStatusRoutes(app) {
             { entity: 'zabbix_config' },
             { entity: 'prometheus_config' },
             { entity: 'dns_config' },
+            { entity: 'topdesk_config' },
             { entity: 'oidc_config' },
             { entity: 'ldap_config' },
             { entity: 'user', action: 'login' },
@@ -169,7 +195,7 @@ export async function registerIntegrationsStatusRoutes(app) {
         take: 12,
       }),
     ]);
-    const integrations = [zabbix, prometheus, dns, oidc, ldap];
+    const integrations = [zabbix, prometheus, dns, topdesk, oidc, ldap];
     const overall = deriveOverall(integrations);
     return { overall, integrations, events };
   });

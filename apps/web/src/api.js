@@ -183,6 +183,15 @@ export const api = {
   dnsPreview: () => request('/admin/dns-config/preview'),
   dnsSync: () => request('/admin/dns-config/sync', { method: 'POST' }),
 
+  // TopDesk (ITSM)
+  topDeskConfig: () => request('/admin/topdesk-config'),
+  updateTopDeskConfig: (data) =>
+    request('/admin/topdesk-config', { method: 'PATCH', body: JSON.stringify(data) }),
+  testTopDeskConfig: () => request('/admin/topdesk-config/test', { method: 'POST' }),
+  topDeskTemplates: () => request('/admin/topdesk-config/templates'),
+  topDeskPreview: () => request('/admin/topdesk-config/preview'),
+  syncTopDesk: () => request('/admin/topdesk-config/sync', { method: 'POST' }),
+
   // Validation rules
   validationRules: () => request('/validation/rules'),
   validationRuleTypes: () => request('/validation/rule-types'),
