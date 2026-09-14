@@ -1,0 +1,23 @@
+{
+  "name": "bagre-mcp",
+  "version": "0.1.0",
+  "description": "Servidor MCP do Bagre — expõe o IPAM como tools para agentes de IA operarem via Model Context Protocol. Fachada fina sobre a API REST; a autenticação e o escopo (READ_ONLY/READ_WRITE) são enforçados pela própria API.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "bagre-mcp": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": ["mcp", "model-context-protocol", "ipam", "bagre", "ai-agents"],
+  "author": "Fabricio Cruz",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.23.8"
+  }
+}
