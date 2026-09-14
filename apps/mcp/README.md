@@ -4,7 +4,22 @@ Expõe o IPAM do Bagre como **tools de [Model Context Protocol](https://modelcon
 
 É uma **fachada fina** sobre a API REST do Bagre: não reimplementa autenticação nem lógica de IPAM. A autenticação é um token `bagre_…` e o **escopo do token** (`READ_ONLY` / `READ_WRITE`) é enforçado pela própria API — um token read-only recebe `403` em qualquer escrita, então o agente **não consegue** mutar o estado se você não quiser.
 
-> **MVP (Fase 0):** read-only. Tool disponível: `search`. As demais tools de leitura entram na Fase 1.
+> **MVP:** read-only, 12 tools de leitura. Escrita (alocar/reservar IP) fica para uma fase futura com token `READ_WRITE`.
+
+## Guia rápido (5 minutos)
+
+Você precisa de: uma instância do Bagre no ar, **Node ≥ 20** na máquina onde roda seu app de IA, e o app de IA (ex.: Claude Desktop).
+
+1. **Gere a chave** — no Bagre, **Admin → API Tokens** → criar token de escopo **READ_ONLY**. Copie o `bagre_…` (aparece uma vez só).
+2. **Baixe e instale** o servidor MCP:
+   ```bash
+   git clone https://github.com/fabgcruz/bagre.git
+   cd bagre/apps/mcp && npm install
+   ```
+3. **Plugue no Claude Desktop** — edite o `claude_desktop_config.json` (veja o bloco em [Uso com Claude Desktop](#uso-com-claude-desktop)), trocando o caminho, a URL do seu Bagre e o token.
+4. **Reinicie o Claude Desktop** e pergunte: *"quais IPs públicos estão ociosos no Bagre?"*. Pronto — a IA responde puxando os dados ao vivo.
+
+> Roda na **sua máquina** (o app de IA inicia o servidor MCP como subprocesso) e fala com o Bagre da empresa pela rede. Não precisa mexer no Docker do servidor.
 
 ## Requisitos
 
