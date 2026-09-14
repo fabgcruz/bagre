@@ -1,6 +1,6 @@
 {
   "name": "bagre",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Bagre — Open Source IP Address Management. IPAM leve e moderno para gerenciar, organizar e monitorar todos os IPs da sua rede.",
   "main": "index.js",
   "scripts": {

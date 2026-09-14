@@ -8,10 +8,28 @@ Quem está testando o Bagre pode acompanhar aqui o que mudou em cada versão —
 
 ## [Unreleased]
 
-Mudanças que estão em `main` e ainda não entraram em release oficial.
+_Sem mudanças ainda._
+
+---
+
+## [1.2.0] — 2026-09-14
+
+**Tema:** Bagre AI-native — servidor MCP para agentes operarem o IPAM.
 
 ### Adicionado
 - **Servidor MCP — Bagre AI-native** ([#62](https://github.com/fabgcruz/bagre/issues/62)) — expõe o IPAM como tools de [Model Context Protocol](https://modelcontextprotocol.io) para agentes de IA (Claude Desktop, Claude Code, SDKs) **consultarem a rede em linguagem natural** (*"qual o próximo IP livre em produção?"*, *"quais IPs públicos estão ociosos?"*, *"onde está o host X?"*). Fachada fina sobre a API REST, em `apps/mcp/` — nenhuma IA roda no Bagre; a autenticação é um token `bagre_…` e o **escopo READ_ONLY** faz a própria API bloquear qualquer escrita, então o agente **não altera nada**. MVP com **12 tools de leitura** (busca global, subnets, próximo IP livre, calculadora CIDR, descobertas pendentes, FinOps de IPs ociosos, estatísticas). Transporte stdio; roda na máquina de quem usa o agente. Escrita (alocar/reservar/liberar IP) fica para uma fase futura com token `READ_WRITE`.
+
+### Corrigido
+- **502 no demo após restart/migração da API** ([#113](https://github.com/fabgcruz/bagre/pull/113)) — o nginx do container `web` resolvia o upstream `api` só no boot e cacheava o IP; quando o container da API era recriado (deploy/migração), ele ganhava novo IP na rede docker e o `web` passava a devolver **502 em todo `/api`** (o SPA estático seguia 200, mascarando a causa). Agora usa o resolver do Docker (`127.0.0.11`) + upstream via variável, re-resolvendo em runtime.
+- **Provedores de autenticação (LDAP/OIDC) não são mais marcados como "sync atrasado"** — o status de integrações deixa de sinalizar atraso de sincronização para provedores de auth, que não têm ciclo de sync como Zabbix/Prometheus.
+
+---
+
+## [1.1.0] — 2026-07-24
+
+**Tema:** Automação (API tokens) + autenticação corporativa (LDAP/AD) + hardening do demo.
+
+### Adicionado
 - **Tokens de API para automação** ([#15](https://github.com/fabgcruz/bagre/issues/15)) — credenciais de longa duração (`Authorization: Bearer bagre_…`) para o provider **Terraform/OpenTofu**, o **operator Kubernetes** e scripts de CI consumirem o Bagre como source of truth, sem login de usuário. Cada token tem **escopo** (somente leitura ou leitura/escrita), expiração opcional e revogação imediata. Só o **hash SHA-256** é guardado — o token aparece **uma única vez** na criação. Por segurança, tokens **não podem gerenciar usuários nem outros tokens**. Gerenciável na nova tela **Tokens de API** (`/admin/api-tokens`, admin only) e bloqueado no demo.
 - **Autenticação LDAP / Active Directory nativa** ([#48](https://github.com/fabgcruz/bagre/issues/48)) — provider de bind direto (search-then-bind, valida a senha re-bindando como o usuário), mapeamento **grupo do AD → papel** (`memberOf` → ADMIN/READER), provisionamento no 1º login, suporte a `ldaps://`/StartTLS. Configurável na nova tela **Integrações → Autenticação AD/LDAP** (`/admin/ldap`), com botão **Testar conexão**. Login local e SSO continuam em paralelo (anti-lockout).
 - **Card "Autenticação AD/LDAP"** na tela de Status das Integrações, ao lado de Zabbix/Prometheus/PowerDNS/SSO.
