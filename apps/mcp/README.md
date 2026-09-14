@@ -60,9 +60,20 @@ claude mcp add bagre \
 
 | Tool | O que faz | Endpoint |
 |---|---|---|
-| `search` | Busca global por IPs, subnets, sites e devices (hostname, IP, CIDR ou nome) | `GET /api/search` |
+| `search` | Busca global por IPs, subnets, sites e devices | `GET /api/search` |
+| `list_sites_with_subnets` | Mapa geral: sites e suas subnets | `GET /api/sites` |
+| `get_subnet` | Detalha uma subnet (usados/livres) | `GET /api/subnets/:id` |
+| `list_subnet_ips` | IPs de uma subnet (filtro status/busca) | `GET /api/subnets/:id/ips` |
+| `subnet_next_free_ip` | Próximo IP livre da subnet | `GET /api/subnets/:id/next-free-ip` |
+| `subnet_utilization_history` | Histórico de ocupação da subnet | `GET /api/subnets/:id/utilization-history` |
+| `cidr_parse` | Analisa um CIDR + overlaps | `GET /api/cidr/parse` |
+| `cidr_next_free` | Próximos blocos CIDR livres num pai | `GET /api/cidr/next-free` |
+| `pending_discoveries` | Descobertas aguardando aprovação | `GET /api/pending-discoveries` |
+| `pending_discoveries_stats` | Contagens de descobertas por status | `GET /api/pending-discoveries/stats` |
+| `finops_idle_public_ips` | IPs públicos ociosos + custo (propõe) | `GET /api/cloud/finops/idle-public-ips` |
+| `stats` | Estatísticas gerais do IPAM | `GET /api/stats` |
 
-_Fase 1 (planejado):_ `get_subnet`, `list_subnet_ips`, `subnet_next_free_ip`, `cidr_next_free`, `cidr_parse`, `list_sites_with_subnets`, `pending_discoveries`, `finops_idle_public_ips`, `stats`, `subnet_utilization_history`.
+Todas read-only. As tools que exigem `ADMIN` (audit, network-health, status de integrações) ficam para uma fase futura com token `READ_WRITE`.
 
 ## Exemplos de perguntas
 

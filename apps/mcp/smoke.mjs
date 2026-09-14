@@ -14,7 +14,7 @@ const client = new Client({ name: 'smoke', version: '0.0.0' });
 await client.connect(transport);
 
 const { tools } = await client.listTools();
-console.log('TOOLS:', tools.map((t) => t.name));
+console.log('TOOLS (%d):', tools.length, tools.map((t) => t.name));
 
 const res = await client.callTool({ name: 'search', arguments: { q: 'db-prod-01' } });
 console.log('SEARCH isError:', res.isError === true);
