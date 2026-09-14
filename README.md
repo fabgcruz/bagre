@@ -142,6 +142,24 @@ integrações:
 
 Ambos usam as mesmas variáveis de ambiente: `BAGRE_ENDPOINT` e `BAGRE_TOKEN`.
 
+### AI-native: servidor MCP 🤖
+
+O Bagre expõe um **servidor [MCP](https://modelcontextprotocol.io)** ([#62](https://github.com/fabgcruz/bagre/issues/62))
+para agentes de IA (Claude Desktop, Claude Code, SDKs) **consultarem a rede em
+linguagem natural** — *"qual o próximo IP livre em produção?"*, *"quais IPs
+públicos estão ociosos e custando dinheiro?"*, *"onde está o host `db-prod-01`?"*.
+
+É uma **fachada fina** sobre a API REST: nenhuma IA roda no Bagre, o custo de IA
+é de quem usa o agente. Por padrão usa um token **somente-leitura** — a própria
+API bloqueia qualquer escrita, então o agente **não altera nada**.
+
+```bash
+cd apps/mcp && npm install
+# configure no seu app de IA — veja apps/mcp/README.md
+```
+
+Detalhes, tools disponíveis e o guia de 5 minutos em **[`apps/mcp/README.md`](apps/mcp/README.md)**.
+
 ## Linha do tempo e evolução
 
 | Versão | Data | Highlights |
