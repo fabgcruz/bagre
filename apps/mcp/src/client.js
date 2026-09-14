@@ -29,8 +29,16 @@ export class BagreApiError extends Error {
 
 /** Traduz status HTTP em mensagens acionáveis para o agente. */
 function explain(status, body) {
-  const detail =
-    (body && (body.error || body.message || body.detail)) || '';
+  // O corpo pode ser JSON (`{error}`) ou texto/HTML puro (5xx, proxy, gateway).
+  // Nos dois casos extraímos um detalhe legível, truncado para não poluir o contexto.
+  let detail = '';
+  if (body && typeof body === 'object') {
+    detail = body.error || body.message || body.detail || '';
+  } else if (typeof body === 'string') {
+    detail = body.trim();
+  }
+  if (typeof detail === 'string' && detail.length > 300) detail = detail.slice(0, 300) + '…';
+
   switch (status) {
     case 401:
       return 'Não autenticado: BAGRE_API_TOKEN ausente, inválido ou expirado.';
@@ -40,7 +48,9 @@ function explain(status, body) {
     case 404:
       return `Não encontrado: ${detail || 'o recurso solicitado não existe.'}`;
     default:
-      return detail || `Erro HTTP ${status} ao chamar a API do Bagre.`;
+      return detail
+        ? `Erro HTTP ${status}: ${detail}`
+        : `Erro HTTP ${status} ao chamar a API do Bagre.`;
   }
 }
 

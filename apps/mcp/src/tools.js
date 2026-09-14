@@ -14,8 +14,46 @@ function jsonResult(data) {
 /** Envelopa um erro de forma que o agente veja a mensagem e possa se ajustar. */
 function errorResult(err) {
   const msg =
-    err instanceof BagreApiError ? err.message : `Erro inesperado: ${err.message}`;
+    err instanceof BagreApiError
+      ? err.message
+      : `Erro inesperado: ${String(err?.message ?? err)}`;
   return { isError: true, content: [{ type: 'text', text: msg }] };
+}
+
+// A API não pagina; para não estourar o contexto do LLM, truncamos no cliente.
+const DEFAULT_LIMIT = 100;
+const limitSchema = z.coerce
+  .number()
+  .int()
+  .min(1)
+  .max(1000)
+  .default(DEFAULT_LIMIT)
+  .describe(`Máximo de itens retornados (padrão ${DEFAULT_LIMIT})`);
+
+/** Trunca um array no topo da resposta, anexando aviso de truncamento. */
+function capArray(arr, limit) {
+  if (!Array.isArray(arr) || arr.length <= limit) return arr;
+  return {
+    _truncated: true,
+    _shown: limit,
+    _total: arr.length,
+    _note: `Mostrando ${limit} de ${arr.length}. Refine com filtros ou aumente 'limit'.`,
+    items: arr.slice(0, limit),
+  };
+}
+
+/** Trunca o array `items` dentro de um objeto (ex.: finops), preservando os agregados. */
+function capItemsField(obj, limit) {
+  if (!obj || !Array.isArray(obj.items) || obj.items.length <= limit) return obj;
+  return {
+    ...obj,
+    items: obj.items.slice(0, limit),
+    _truncatedItems: {
+      shown: limit,
+      total: obj.items.length,
+      note: `Mostrando ${limit} de ${obj.items.length} itens. Use os agregados (summary/byAccount) ou aumente 'limit'.`,
+    },
+  };
 }
 
 /**
@@ -27,6 +65,7 @@ function errorResult(err) {
  * @param {string} def.description
  * @param {Record<string, import('zod').ZodTypeAny>} def.inputSchema  shape zod
  * @param {(args:any)=>{path:string, query?:object}} def.request  monta a chamada
+ * @param {(data:any, limit:number)=>any} [def.cap]  trunca a resposta (para endpoints sem paginação)
  */
 function readTool(server, def) {
   server.registerTool(
@@ -39,8 +78,10 @@ function readTool(server, def) {
     },
     async (args) => {
       try {
-        const { path, query } = def.request(args || {});
-        return jsonResult(await apiGet(path, query));
+        const a = args || {};
+        const { path, query } = def.request(a);
+        const data = await apiGet(path, query);
+        return jsonResult(def.cap ? def.cap(data, a.limit ?? DEFAULT_LIMIT) : data);
       } catch (err) {
         return errorResult(err);
       }
@@ -71,8 +112,9 @@ export function registerTools(server) {
     description:
       'Lista todos os sites (datacenters/localidades) com suas subnets. ' +
       'Use para ter o mapa geral da rede e descobrir IDs de subnet.',
-    inputSchema: {},
+    inputSchema: { limit: limitSchema },
     request: () => ({ path: '/api/sites' }),
+    cap: capArray,
   });
 
   readTool(server, {
@@ -100,8 +142,10 @@ export function registerTools(server) {
         .optional()
         .describe('Filtra por status do IP'),
       q: z.string().optional().describe('Busca livre: hostname, IP, tipo ou função'),
+      limit: limitSchema,
     },
     request: ({ id, status, q }) => ({ path: `/api/subnets/${id}/ips`, query: { status, q } }),
+    cap: capArray,
   });
 
   readTool(server, {
@@ -178,11 +222,13 @@ export function registerTools(server) {
       source: z.string().optional().describe('Filtra pela fonte (ex.: zabbix)'),
       suggestedSubnet: z.string().optional().describe('CIDR da subnet sugerida'),
       q: z.string().optional().describe('Busca livre: IP, hostname ou fabricante'),
+      limit: limitSchema,
     },
     request: ({ status, source, suggestedSubnet, q }) => ({
       path: '/api/pending-discoveries',
       query: { status, source, suggestedSubnet, q },
     }),
+    cap: capArray,
   });
 
   readTool(server, {
@@ -198,9 +244,11 @@ export function registerTools(server) {
     title: 'IPs públicos ociosos (FinOps)',
     description:
       'Lista IPs públicos de nuvem (AWS/Azure/GCP) ociosos, com estimativa de custo — ' +
-      'candidatos a liberação para economia. Apenas leitura: propõe, não libera.',
-    inputSchema: {},
+      'candidatos a liberação para economia. Apenas leitura: propõe, não libera. ' +
+      'Os agregados (summary/byAccount) vêm sempre completos; a lista de itens é limitada.',
+    inputSchema: { limit: limitSchema },
     request: () => ({ path: '/api/cloud/finops/idle-public-ips' }),
+    cap: capItemsField,
   });
 
   readTool(server, {
