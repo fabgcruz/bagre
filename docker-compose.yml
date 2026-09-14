@@ -9,7 +9,8 @@ services:
       POSTGRES_PASSWORD: bagre
       POSTGRES_DB: bagre
     ports:
-      - "5433:5432"
+      # Bind só no loopback — o Postgres não fica exposto na interface pública do host.
+      - "127.0.0.1:5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:

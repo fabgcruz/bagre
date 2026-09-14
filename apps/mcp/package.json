@@ -13,6 +13,16 @@
   "keywords": ["mcp", "model-context-protocol", "ipam", "bagre", "ai-agents"],
   "author": "Fabricio Cruz",
   "license": "MIT",
+  "homepage": "https://github.com/fabgcruz/bagre/tree/main/apps/mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabgcruz/bagre.git",
+    "directory": "apps/mcp"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
   "engines": {
     "node": ">=20"
   },
