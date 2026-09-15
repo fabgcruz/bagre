@@ -35,3 +35,6 @@ infra/tls/
 
 # Playwright cache (snapshots + console logs durante captura de screenshots)
 .playwright-mcp/
+
+# Wrangler (cache/estado local do deploy do site via Cloudflare)
+.wrangler/
