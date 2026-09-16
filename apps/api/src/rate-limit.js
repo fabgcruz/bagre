@@ -16,7 +16,26 @@ const sweeper = setInterval(() => {
 sweeper.unref?.();
 
 /**
- * Cria um preHandler de rate limit (janela fixa).
+ * Consome uma unidade da janela fixa para `key`. Reutilizável fora de um
+ * preHandler (ex.: rate-limit por token de API dentro do hook global).
+ * @returns {{allowed: boolean, retryAfterSec: number}}
+ */
+export function consume(key, windowMs = 60_000, max = 60) {
+  const now = Date.now();
+  let b = buckets.get(key);
+  if (!b || b.resetAt <= now) {
+    b = { count: 0, resetAt: now + windowMs };
+    buckets.set(key, b);
+  }
+  b.count += 1;
+  if (b.count > max) {
+    return { allowed: false, retryAfterSec: Math.ceil((b.resetAt - now) / 1000) };
+  }
+  return { allowed: true, retryAfterSec: 0 };
+}
+
+/**
+ * Cria um preHandler de rate limit (janela fixa) por IP.
  * @param {object} opts
  * @param {string} opts.name  rótulo do bucket (separa contadores por rota)
  * @param {number} opts.windowMs  tamanho da janela em ms
@@ -24,16 +43,9 @@ sweeper.unref?.();
  */
 export function rateLimit({ name = 'default', windowMs = 60_000, max = 60 } = {}) {
   return async function rateLimitPreHandler(req, reply) {
-    const now = Date.now();
-    const id = `${name}:${req.ip || 'unknown'}`;
-    let b = buckets.get(id);
-    if (!b || b.resetAt <= now) {
-      b = { count: 0, resetAt: now + windowMs };
-      buckets.set(id, b);
-    }
-    b.count += 1;
-    if (b.count > max) {
-      reply.header('Retry-After', String(Math.ceil((b.resetAt - now) / 1000)));
+    const r = consume(`${name}:${req.ip || 'unknown'}`, windowMs, max);
+    if (!r.allowed) {
+      reply.header('Retry-After', String(r.retryAfterSec));
       reply.code(429).send({ error: 'muitas tentativas — tente novamente em instantes' });
       return reply;
     }

@@ -7,6 +7,7 @@ import cookie from '@fastify/cookie';
 import { prisma } from './db.js';
 import { ensureBootstrapAdmin, requireAuth, requireAdmin } from './auth.js';
 import { looksLikeApiToken, resolveApiToken } from './api-token.js';
+import { consume } from './rate-limit.js';
 import { DEMO } from './demo-guard.js';
 import { registerSites } from './routes/sites.js';
 import { registerSubnets } from './routes/subnets.js';
@@ -39,6 +40,13 @@ import { startScheduler as startPrometheusScheduler } from './integrations/prome
 import { startScheduler as startSnapshotScheduler } from './integrations/utilization-snapshot.js';
 
 const PORT = Number(process.env.PORT || 3001);
+
+// Rate-limit por token de API (automação / agentes MCP). Teto por token e janela,
+// para conter loops caros/consultas repetidas sem depender do comportamento do
+// cliente. Default generoso (não quebra bursts legítimos de Terraform/K8s/CI);
+// API_TOKEN_RATE_MAX=0 desliga. Ver issue #118.
+const API_TOKEN_RATE_MAX = Number(process.env.API_TOKEN_RATE_MAX ?? 600);
+const API_TOKEN_RATE_WINDOW_MS = Number(process.env.API_TOKEN_RATE_WINDOW_MS ?? 60_000);
 
 async function build() {
   // trustProxy: atrás do nginx/reverse-proxy (demo, self-host), faz req.ip
@@ -135,6 +143,20 @@ async function build() {
       if (!tok) {
         reply.code(401).send({ error: 'invalid or expired API token' });
         return reply;
+      }
+      // Rate-limit por token: contém loops/consultas repetidas do agente. A trava
+      // é server-side (não depende do prompt nem do comportamento do modelo).
+      if (API_TOKEN_RATE_MAX > 0) {
+        const rl = consume(`apitoken:${tok.id}`, API_TOKEN_RATE_WINDOW_MS, API_TOKEN_RATE_MAX);
+        if (!rl.allowed) {
+          reply.header('Retry-After', String(rl.retryAfterSec));
+          reply.code(429).send({
+            error: `rate limit do token de API excedido (máx ${API_TOKEN_RATE_MAX}/${Math.round(
+              API_TOKEN_RATE_WINDOW_MS / 1000,
+            )}s) — reduza a cadência das chamadas`,
+          });
+          return reply;
+        }
       }
       if (url.startsWith('/api/api-tokens') || url.startsWith('/api/users')) {
         reply.code(403).send({ error: 'forbidden — API tokens cannot manage tokens or users' });
