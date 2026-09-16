@@ -42,6 +42,12 @@ Variáveis de ambiente (veja `.env.example`):
 |---|---|---|
 | `BAGRE_API_URL` | URL da API do Bagre (sem barra final) | `http://localhost:3001` |
 | `BAGRE_API_TOKEN` | Token `bagre_…` de automação | — (obrigatório) |
+| `BAGRE_MCP_CACHE_TTL_MS` | Janela de idempotência: consultas de leitura idênticas dentro desse tempo reusam a resposta (e chamadas concorrentes idênticas compartilham uma única requisição HTTP). `0` desliga o cache. | `5000` |
+
+> **Idempotência:** o cliente MCP guarda um cache curto por requisição para evitar
+> **loops caros do agente** — se a IA refizer a mesma consulta na mesma janela, a
+> resposta vem do cache em vez de bater na API de novo. Só afeta `GET`; erros nunca
+> são cacheados.
 
 ## Uso com Claude Desktop
 
