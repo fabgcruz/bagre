@@ -8,7 +8,19 @@ Quem está testando o Bagre pode acompanhar aqui o que mudou em cada versão —
 
 ## [Unreleased]
 
-_Sem mudanças ainda._
+Mudanças em `main` desde a v1.2.0, ainda não numa release oficial.
+
+### Adicionado
+- **Escopo por recurso nos tokens de API** ([#118](https://github.com/fabgcruz/bagre/issues/118)) — além do verbo (READ_ONLY/READ_WRITE), um token pode ser restrito a um subconjunto de recursos (ex.: um agente MCP que só lê `subnets`, `ips` e `finops`). Escopo vazio = acesso a todos (retrocompatível). Enforçado server-side no hook global; seletor de recursos na tela **Tokens de API**.
+- **Rate-limit por token de API** ([#118](https://github.com/fabgcruz/bagre/issues/118)) — teto de requisições por token de automação/MCP, para conter loops caros e consultas repetidas de agentes. A trava é server-side (não depende do prompt nem do comportamento do modelo). Configurável via `API_TOKEN_RATE_MAX` / `API_TOKEN_RATE_WINDOW_MS` (`0` desliga).
+- **Idempotência no cliente MCP** ([#118](https://github.com/fabgcruz/bagre/issues/118)) — cache curto por requisição + dedupe de chamadas concorrentes idênticas (compartilham uma única requisição HTTP), evitando loops caros do agente. Janela via `BAGRE_MCP_CACHE_TTL_MS` (padrão 5s, `0` desliga). _(As três acima nasceram de feedback da comunidade no lançamento do MCP.)_
+- **Servidor MCP publicável via npm** ([#115](https://github.com/fabgcruz/bagre/pull/115)) — empacotamento (`files`/`repository`) pronto para `npx bagre-mcp`.
+
+### Segurança / hardening
+- **Postgres não exposto na interface pública** ([#115](https://github.com/fabgcruz/bagre/pull/115)) — o `docker-compose.yml` passa a bindar o banco em `127.0.0.1:5433` em vez de `0.0.0.0`.
+
+### Dependências
+- Bumps de segurança/manutenção via Dependabot: `fastify`, `@fastify/static` (major 9→10), `react-router`/`react-router-dom`, `postcss`, `browserslist`, `fast-uri`, `find-my-way`, `brace-expansion`, entre outros.
 
 ---
 

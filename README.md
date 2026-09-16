@@ -151,7 +151,10 @@ públicos estão ociosos e custando dinheiro?"*, *"onde está o host `db-prod-01
 
 É uma **fachada fina** sobre a API REST: nenhuma IA roda no Bagre, o custo de IA
 é de quem usa o agente. Por padrão usa um token **somente-leitura** — a própria
-API bloqueia qualquer escrita, então o agente **não altera nada**.
+API bloqueia qualquer escrita, então o agente **não altera nada**. Dá pra ir além
+e **restringir o token a recursos específicos** (ex.: só `subnets`/`ips`/`finops`),
+com **rate-limit por token** e **idempotência no cliente** para conter loops caros
+do agente — tudo enforçado server-side ([#118](https://github.com/fabgcruz/bagre/issues/118)).
 
 ```bash
 cd apps/mcp && npm install
