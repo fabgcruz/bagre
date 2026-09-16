@@ -6,7 +6,7 @@ import cookie from '@fastify/cookie';
 
 import { prisma } from './db.js';
 import { ensureBootstrapAdmin, requireAuth, requireAdmin } from './auth.js';
-import { looksLikeApiToken, resolveApiToken } from './api-token.js';
+import { looksLikeApiToken, resolveApiToken, tokenAllowsPath } from './api-token.js';
 import { consume } from './rate-limit.js';
 import { DEMO } from './demo-guard.js';
 import { registerSites } from './routes/sites.js';
@@ -160,6 +160,14 @@ async function build() {
       }
       if (url.startsWith('/api/api-tokens') || url.startsWith('/api/users')) {
         reply.code(403).send({ error: 'forbidden — API tokens cannot manage tokens or users' });
+        return reply;
+      }
+      // Escopo por recurso: se o token foi restrito a certos recursos, barra
+      // rotas fora do escopo (independente do verbo). Vazio = todos (legado).
+      if (!tokenAllowsPath(tok.resourceScopes, url)) {
+        reply.code(403).send({
+          error: 'forbidden — este token de API não tem escopo para este recurso',
+        });
         return reply;
       }
       const canWrite = tok.scope === 'READ_WRITE';

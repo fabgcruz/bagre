@@ -26,8 +26,18 @@ export default function ApiTokenSettings() {
     queryKey: ['api-tokens'],
     queryFn: api.apiTokens,
   });
+  const { data: scopeData } = useQuery({
+    queryKey: ['api-token-scopes'],
+    queryFn: api.apiTokenScopes,
+  });
+  const availableScopes = scopeData?.resourceScopes ?? [];
 
-  const [form, setForm] = useState({ name: '', scope: 'READ_WRITE', expiresInDays: '' });
+  const [form, setForm] = useState({
+    name: '',
+    scope: 'READ_WRITE',
+    expiresInDays: '',
+    resourceScopes: [],
+  });
   // Plaintext token shown exactly once, right after creation.
   const [freshToken, setFreshToken] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -37,7 +47,7 @@ export default function ApiTokenSettings() {
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['api-tokens'] });
       setFreshToken(res.token);
-      setForm({ name: '', scope: 'READ_WRITE', expiresInDays: '' });
+      setForm({ name: '', scope: 'READ_WRITE', expiresInDays: '', resourceScopes: [] });
       toast.success('Token criado. Copie agora — ele não será exibido de novo.');
     },
     onError: (e) => toast.error(e.message),
@@ -62,6 +72,9 @@ export default function ApiTokenSettings() {
     const payload = { name: form.name.trim(), scope: form.scope };
     if (form.expiresInDays !== '' && Number(form.expiresInDays) > 0) {
       payload.expiresInDays = Number(form.expiresInDays);
+    }
+    if (form.resourceScopes.length > 0) {
+      payload.resourceScopes = form.resourceScopes;
     }
     create.mutate(payload);
   }
@@ -163,6 +176,37 @@ export default function ApiTokenSettings() {
             <KeyRound size={14} />
             <span className="ml-1">{create.isPending ? 'Gerando…' : 'Gerar'}</span>
           </button>
+
+          {availableScopes.length > 0 && (
+            <div className="sm:col-span-4">
+              <label className="block text-xs text-slate-500 mb-1">
+                Recursos (opcional) — vazio = acesso a todos
+              </label>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {availableScopes.map((s) => (
+                  <label key={s} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.resourceScopes.includes(s)}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          resourceScopes: e.target.checked
+                            ? [...f.resourceScopes, s]
+                            : f.resourceScopes.filter((x) => x !== s),
+                        }))
+                      }
+                    />
+                    <span className="font-mono">{s}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Restrinja o token a recursos específicos — ex.: um agente MCP que só lê{' '}
+                <code>subnets</code>, <code>ips</code> e <code>finops</code>.
+              </p>
+            </div>
+          )}
         </form>
       </div>
 
@@ -181,6 +225,7 @@ export default function ApiTokenSettings() {
                 <th className="px-4 py-2 font-medium">Nome</th>
                 <th className="px-4 py-2 font-medium">Identificador</th>
                 <th className="px-4 py-2 font-medium">Escopo</th>
+                <th className="px-4 py-2 font-medium">Recursos</th>
                 <th className="px-4 py-2 font-medium">Último uso</th>
                 <th className="px-4 py-2 font-medium">Expira</th>
                 <th className="px-4 py-2 font-medium">Status</th>
@@ -202,6 +247,15 @@ export default function ApiTokenSettings() {
                       <span className={`text-xs rounded px-1.5 py-0.5 ${t.scope === 'READ_WRITE' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
                         {t.scope === 'READ_WRITE' ? 'Leitura/Escrita' : 'Somente leitura'}
                       </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs">
+                      {t.resourceScopes && t.resourceScopes.length > 0 ? (
+                        <span className="font-mono text-slate-600 dark:text-slate-300">
+                          {t.resourceScopes.join(', ')}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">todos</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-slate-500 text-xs">{fmtDate(t.lastUsedAt)}</td>
                     <td className="px-4 py-2.5 text-slate-500 text-xs">{t.expiresAt ? fmtDate(t.expiresAt) : 'nunca'}</td>

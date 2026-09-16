@@ -48,3 +48,53 @@ export async function resolveApiToken(token) {
     .catch(() => {});
   return row;
 }
+
+// --- Escopo por recurso (issue #118) ---------------------------------------
+// Além do escopo de verbo (READ_ONLY/READ_WRITE), um token pode ser restrito a
+// um subconjunto de recursos. Cada scope nomeado mapeia para prefixos de rota
+// sob /api. Token com `resourceScopes` VAZIO acessa tudo (comportamento legado);
+// com scopes definidos, só as rotas cobertas. Assim dá pra dar a um agente MCP
+// um token que, por exemplo, só lê subnets/ips/finops.
+export const RESOURCE_SCOPES = {
+  subnets: ['/api/subnets'],
+  ips: ['/api/ips'],
+  sites: ['/api/sites'],
+  discoveries: ['/api/pending-discoveries'],
+  cidr: ['/api/cidr'],
+  search: ['/api/search'],
+  stats: ['/api/stats'],
+  finops: ['/api/cloud/finops'],
+  cloud: ['/api/cloud'],
+  devices: ['/api/devices'],
+  dns: ['/api/dns'],
+  catalogs: ['/api/catalogs'],
+  validation: ['/api/validation'],
+  ingest: ['/api/ingest'],
+};
+
+export const RESOURCE_SCOPE_KEYS = Object.keys(RESOURCE_SCOPES);
+
+/** Normaliza + valida uma lista de scopes; retorna só os válidos, sem duplicar. */
+export function sanitizeResourceScopes(input) {
+  if (!Array.isArray(input)) return [];
+  const set = new Set();
+  for (const s of input) if (typeof s === 'string' && RESOURCE_SCOPES[s]) set.add(s);
+  return [...set];
+}
+
+/**
+ * Token com `resourceScopes` vazio pode tudo (legado). Com scopes definidos, a
+ * rota precisa começar com algum prefixo de algum scope concedido.
+ * @param {string[]} resourceScopes
+ * @param {string} routePath  padrão de rota (ex.: `/api/subnets/:id`)
+ */
+export function tokenAllowsPath(resourceScopes, routePath) {
+  if (!Array.isArray(resourceScopes) || resourceScopes.length === 0) return true;
+  const path = String(routePath).split('?')[0];
+  for (const scope of resourceScopes) {
+    for (const p of RESOURCE_SCOPES[scope] || []) {
+      if (path === p || path.startsWith(p + '/')) return true;
+    }
+  }
+  return false;
+}

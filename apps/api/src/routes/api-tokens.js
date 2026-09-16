@@ -2,7 +2,11 @@ import { prisma } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { auditFromReq } from '../audit.js';
 import { DEMO, demoBlock } from '../demo-guard.js';
-import { generateApiToken } from '../api-token.js';
+import {
+  generateApiToken,
+  sanitizeResourceScopes,
+  RESOURCE_SCOPE_KEYS,
+} from '../api-token.js';
 
 // API tokens authorize automation (Terraform provider, K8s operator, CI) without
 // a user login. Management is ADMIN-only and disabled in the public demo. The
@@ -18,6 +22,7 @@ function projectToken(t) {
     name: t.name,
     prefix: t.prefix,
     scope: t.scope,
+    resourceScopes: t.resourceScopes ?? [],
     lastUsedAt: t.lastUsedAt,
     expiresAt: t.expiresAt,
     revokedAt: t.revokedAt,
@@ -26,6 +31,11 @@ function projectToken(t) {
 }
 
 export async function registerApiTokens(app) {
+  // Lista os recursos disponíveis para escopo — alimenta a UI de criação.
+  app.get('/api/api-tokens/scopes', { preHandler: requireAdmin }, async () => {
+    return { resourceScopes: RESOURCE_SCOPE_KEYS };
+  });
+
   // List tokens — admin only. Hash is never returned.
   app.get('/api/api-tokens', { preHandler: requireAdmin }, async () => {
     const tokens = await prisma.apiToken.findMany({ orderBy: { createdAt: 'desc' } });
@@ -35,7 +45,7 @@ export async function registerApiTokens(app) {
   // Create a token — admin only. Returns the plaintext token ONCE.
   app.post('/api/api-tokens', { preHandler: requireAdmin }, async (req, reply) => {
     if (DEMO) return demoBlock(reply, DEMO_MSG);
-    const { name, scope = 'READ_WRITE', expiresInDays } = req.body || {};
+    const { name, scope = 'READ_WRITE', expiresInDays, resourceScopes } = req.body || {};
     if (!name || typeof name !== 'string' || !name.trim()) {
       reply.code(400);
       return { error: 'name obrigatório' };
@@ -43,6 +53,22 @@ export async function registerApiTokens(app) {
     if (!['READ_ONLY', 'READ_WRITE'].includes(scope)) {
       reply.code(400);
       return { error: 'scope inválido (READ_ONLY | READ_WRITE)' };
+    }
+    // Escopo por recurso (opcional). Vazio/ausente = todos os recursos (legado).
+    let scopes = [];
+    if (typeof resourceScopes !== 'undefined' && resourceScopes !== null) {
+      if (!Array.isArray(resourceScopes)) {
+        reply.code(400);
+        return { error: 'resourceScopes deve ser uma lista' };
+      }
+      const invalid = resourceScopes.filter((s) => !RESOURCE_SCOPE_KEYS.includes(s));
+      if (invalid.length) {
+        reply.code(400);
+        return {
+          error: `resourceScopes inválidos: ${invalid.join(', ')}. Válidos: ${RESOURCE_SCOPE_KEYS.join(', ')}`,
+        };
+      }
+      scopes = sanitizeResourceScopes(resourceScopes);
     }
     let expiresAt = null;
     if (typeof expiresInDays !== 'undefined' && expiresInDays !== null) {
@@ -61,6 +87,7 @@ export async function registerApiTokens(app) {
         tokenHash,
         prefix,
         scope,
+        resourceScopes: scopes,
         expiresAt,
         createdById: req.user?.id ?? null,
       },

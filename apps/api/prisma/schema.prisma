@@ -155,6 +155,7 @@ model ApiToken {
   tokenHash   String        @unique // sha256(hex) of the full token
   prefix      String // visible id, e.g. "bagre_AbCdEf12" (never enough to use)
   scope       ApiTokenScope @default(READ_WRITE)
+  resourceScopes String[]   @default([]) // recursos permitidos; vazio = todos (ver #118)
   createdById Int? // user who minted it (audit trail; not a hard FK)
   lastUsedAt  DateTime?
   expiresAt   DateTime? // null = never expires
