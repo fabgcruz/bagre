@@ -215,6 +215,7 @@ export const api = {
   // API tokens for automation (Terraform provider, K8s operator, CI). The
   // plaintext token is only present in the createApiToken response.
   apiTokens: () => request('/api-tokens'),
+  apiTokenScopes: () => request('/api-tokens/scopes'),
   createApiToken: (data) =>
     request('/api-tokens', { method: 'POST', body: JSON.stringify(data) }),
   revokeApiToken: (id) =>
