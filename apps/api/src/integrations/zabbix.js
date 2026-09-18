@@ -31,35 +31,62 @@ function configSig(cfg) {
 async function rpc(cfg, method, params = {}, { needsAuth = true } = {}) {
   if (!cfg.url) throw new Error('Zabbix URL não configurada');
   const endpoint = cfg.url.replace(/\/$/, '') + '/api_jsonrpc.php';
-  const headers = { 'Content-Type': 'application/json-rpc' };
-  const body = {
-    jsonrpc: '2.0',
-    method,
-    params,
-    id: Date.now(),
-  };
+
+  let auth = null;
   if (needsAuth) {
     if (cfg.apiToken) {
-      // Token vai no body em vez do header Authorization.
-      // Zabbix 6.4 aceita ambos por default, mas várias instalações
-      // têm o nginx removendo o header Authorization — body sempre funciona.
-      body.auth = cfg.apiToken;
+      auth = cfg.apiToken;
     } else {
-      const auth = await ensureSession(cfg);
-      body.auth = auth;
+      auth = await ensureSession(cfg);
     }
   }
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Zabbix HTTP ${res.status}`);
-  const json = await res.json();
-  if (json.error) {
-    throw new Error(`Zabbix RPC: ${json.error.message} ${json.error.data || ''}`.trim());
+
+  async function call(useHeaderAuth, useBodyAuth) {
+    const headers = { 'Content-Type': 'application/json-rpc' };
+    if (auth && useHeaderAuth) headers.Authorization = `Bearer ${auth}`;
+    const body = {
+      jsonrpc: '2.0',
+      method,
+      params,
+      id: Date.now(),
+    };
+    if (auth && useBodyAuth) body.auth = auth;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`Zabbix HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.error) {
+      throw new Error(`Zabbix RPC: ${json.error.message} ${json.error.data || ''}`.trim());
+    }
+    return json.result;
   }
-  return json.result;
+
+  if (!auth) return call(false, false);
+
+  // Forma canônica desde o Zabbix 6.4: token no header `Authorization: Bearer`.
+  // No Zabbix 7.4 o campo `auth` do body foi removido, então esta é a única
+  // forma aceita.
+  try {
+    return await call(true, false);
+  } catch (headerErr) {
+    // Fallback para instalações antigas ou atrás de proxy/nginx que remove o
+    // header Authorization (a resposta vem como "Not authorized"): reenvia o
+    // token em `auth` no body. Aceito até o Zabbix 7.0 (deprecado); no 7.4 é
+    // rejeitado com "unexpected parameter auth".
+    if (/not authorized|unauthorized/i.test(headerErr.message)) {
+      try {
+        return await call(false, true);
+      } catch {
+        // Fallback também falhou (token inválido ou Zabbix 7.4 rejeitando o
+        // `auth`): re-lança o erro original do header, mais diagnóstico.
+        throw headerErr;
+      }
+    }
+    throw headerErr;
+  }
 }
 
 async function ensureSession(cfg) {
