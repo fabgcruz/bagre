@@ -16,6 +16,9 @@ Mudanças em `main` desde a v1.2.0, ainda não numa release oficial.
 - **Idempotência no cliente MCP** ([#118](https://github.com/fabgcruz/bagre/issues/118)) — cache curto por requisição + dedupe de chamadas concorrentes idênticas (compartilham uma única requisição HTTP), evitando loops caros do agente. Janela via `BAGRE_MCP_CACHE_TTL_MS` (padrão 5s, `0` desliga). _(As três acima nasceram de feedback da comunidade no lançamento do MCP.)_
 - **Servidor MCP publicável via npm** ([#115](https://github.com/fabgcruz/bagre/pull/115)) — empacotamento (`files`/`repository`) pronto para `npx bagre-mcp`.
 
+### Corrigido
+- **Autenticação com o Zabbix 7.2/7.4** ([#124](https://github.com/fabgcruz/bagre/issues/124), [#125](https://github.com/fabgcruz/bagre/pull/125)) — o Zabbix 7.2 removeu o campo `auth` do corpo da requisição, quebrando a sincronização por token no 7.4. Agora o token vai no header `Authorization: Bearer` (forma canônica desde o 6.4), com fallback para o body em instalações antigas ou atrás de proxy que remove o header. Reportado **e** corrigido por **[@joao-pedro-rdo](https://github.com/joao-pedro-rdo)**.
+
 ### Segurança / hardening
 - **Postgres não exposto na interface pública** ([#115](https://github.com/fabgcruz/bagre/pull/115)) — o `docker-compose.yml` passa a bindar o banco em `127.0.0.1:5433` em vez de `0.0.0.0`.
 
