@@ -204,6 +204,8 @@ Dúvidas, ideias ou quer mostrar como usa o Bagre? Participe das **[GitHub Discu
 
 Um obrigado especial ao **[@hendersonandrade](https://github.com/hendersonandrade)** — **primeiro contribuidor da comunidade** do Bagre. 🐟🙏
 
+E ao **[@joao-pedro-rdo](https://github.com/joao-pedro-rdo)** — reportou **e** corrigiu a autenticação com o Zabbix 7.4 ([#124](https://github.com/fabgcruz/bagre/issues/124) / [#125](https://github.com/fabgcruz/bagre/pull/125)). 🎣🙏
+
 ### Star history
 
 [![Star History Chart](https://api.star-history.com/svg?repos=fabgcruz/bagre&type=Date)](https://star-history.com/#fabgcruz/bagre&Date)
