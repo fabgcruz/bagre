@@ -11,6 +11,9 @@ import { applyDiscoveries } from './discovery.js';
 const IPV4_RE = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 let sessionAuth = null;
 let sessionConfigSig = null;
+// Modo de auth escolhido por versão (cacheado por config): 'header' (>= 6.4) ou 'body' (< 6.4).
+let authMode = null;
+let authModeSig = null;
 
 export async function getConfig() {
   let cfg = await prisma.zabbixConfig.findUnique({ where: { id: 1 } });
@@ -66,27 +69,60 @@ async function rpc(cfg, method, params = {}, { needsAuth = true } = {}) {
 
   if (!auth) return call(false, false);
 
-  // Forma canônica desde o Zabbix 6.4: token no header `Authorization: Bearer`.
-  // No Zabbix 7.4 o campo `auth` do body foi removido, então esta é a única
-  // forma aceita.
+  // Escolhe o modo pela versão do Zabbix (detectada uma vez e cacheada por config):
+  //  - >= 6.4 → token no header `Authorization: Bearer` (forma canônica; único
+  //             modo aceito no 7.2+, que removeu o `auth` do body);
+  //  - <  6.4 → token no body `auth` (o header não existe nessas versões).
+  // Assim cada chamada faz UMA requisição, sem depender do texto do erro.
+  const mode = await ensureAuthMode(cfg);
+
+  if (mode === 'body') {
+    return call(false, true);
+  }
+
+  // Modo header. Mantém um fallback para o body SOMENTE para o caso de proxy/nginx
+  // que remove o header Authorization em instalações >= 6.4 (known-issue do Zabbix):
+  // aí a resposta vem como "Not authorized". No 7.2+ o body é rejeitado, então
+  // re-lançamos o erro original do header.
   try {
     return await call(true, false);
   } catch (headerErr) {
-    // Fallback para instalações antigas ou atrás de proxy/nginx que remove o
-    // header Authorization (a resposta vem como "Not authorized"): reenvia o
-    // token em `auth` no body. Aceito até o Zabbix 7.0 (deprecado); no 7.4 é
-    // rejeitado com "unexpected parameter auth".
     if (/not authorized|unauthorized/i.test(headerErr.message)) {
       try {
         return await call(false, true);
       } catch {
-        // Fallback também falhou (token inválido ou Zabbix 7.4 rejeitando o
-        // `auth`): re-lança o erro original do header, mais diagnóstico.
         throw headerErr;
       }
     }
     throw headerErr;
   }
+}
+
+/**
+ * Descobre uma única vez qual modo de auth usar, com base na versão do Zabbix
+ * (`apiinfo.version`, que não exige auth). Cacheado por config; revalida quando
+ * a config muda. Se a versão não puder ser detectada, assume 'header' (canônico)
+ * — o fallback do `rpc()` cobre o resto.
+ */
+async function ensureAuthMode(cfg) {
+  const sig = configSig(cfg);
+  if (authMode && authModeSig === sig) return authMode;
+  let mode = 'header';
+  try {
+    const version = await rpc(cfg, 'apiinfo.version', {}, { needsAuth: false });
+    const m = String(version).match(/^(\d+)\.(\d+)/);
+    if (m) {
+      const major = Number(m[1]);
+      const minor = Number(m[2]);
+      // Header `Authorization: Bearer` só existe a partir do Zabbix 6.4.
+      mode = major > 6 || (major === 6 && minor >= 4) ? 'header' : 'body';
+    }
+  } catch {
+    // Sem versão detectável: mantém 'header' e deixa o fallback do rpc() agir.
+  }
+  authMode = mode;
+  authModeSig = sig;
+  return mode;
 }
 
 async function ensureSession(cfg) {
