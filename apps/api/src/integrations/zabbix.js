@@ -7,13 +7,12 @@
 
 import { prisma } from '../db.js';
 import { applyDiscoveries } from './discovery.js';
+import { rpc, invalidateSession } from './zabbix-client.js';
+
+// Reexporta para manter a API pública do módulo (as rotas importam daqui).
+export { invalidateSession };
 
 const IPV4_RE = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-let sessionAuth = null;
-let sessionConfigSig = null;
-// Modo de auth escolhido por versão (cacheado por config): 'header' (>= 6.4) ou 'body' (< 6.4).
-let authMode = null;
-let authModeSig = null;
 
 export async function getConfig() {
   let cfg = await prisma.zabbixConfig.findUnique({ where: { id: 1 } });
@@ -24,122 +23,6 @@ export async function getConfig() {
 export function isConfigured(cfg) {
   if (!cfg?.url) return false;
   return Boolean(cfg.apiToken || (cfg.username && cfg.password));
-}
-
-function configSig(cfg) {
-  return [cfg.url, cfg.apiToken, cfg.username, cfg.password].join('|');
-}
-
-/** Low-level JSON-RPC call. Adds auth automatically when needed. */
-async function rpc(cfg, method, params = {}, { needsAuth = true } = {}) {
-  if (!cfg.url) throw new Error('Zabbix URL não configurada');
-  const endpoint = cfg.url.replace(/\/$/, '') + '/api_jsonrpc.php';
-
-  let auth = null;
-  if (needsAuth) {
-    if (cfg.apiToken) {
-      auth = cfg.apiToken;
-    } else {
-      auth = await ensureSession(cfg);
-    }
-  }
-
-  async function call(useHeaderAuth, useBodyAuth) {
-    const headers = { 'Content-Type': 'application/json-rpc' };
-    if (auth && useHeaderAuth) headers.Authorization = `Bearer ${auth}`;
-    const body = {
-      jsonrpc: '2.0',
-      method,
-      params,
-      id: Date.now(),
-    };
-    if (auth && useBodyAuth) body.auth = auth;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`Zabbix HTTP ${res.status}`);
-    const json = await res.json();
-    if (json.error) {
-      throw new Error(`Zabbix RPC: ${json.error.message} ${json.error.data || ''}`.trim());
-    }
-    return json.result;
-  }
-
-  if (!auth) return call(false, false);
-
-  // Escolhe o modo pela versão do Zabbix (detectada uma vez e cacheada por config):
-  //  - >= 6.4 → token no header `Authorization: Bearer` (forma canônica; único
-  //             modo aceito no 7.2+, que removeu o `auth` do body);
-  //  - <  6.4 → token no body `auth` (o header não existe nessas versões).
-  // Assim cada chamada faz UMA requisição, sem depender do texto do erro.
-  const mode = await ensureAuthMode(cfg);
-
-  if (mode === 'body') {
-    return call(false, true);
-  }
-
-  // Modo header. Mantém um fallback para o body SOMENTE para o caso de proxy/nginx
-  // que remove o header Authorization em instalações >= 6.4 (known-issue do Zabbix):
-  // aí a resposta vem como "Not authorized". No 7.2+ o body é rejeitado, então
-  // re-lançamos o erro original do header.
-  try {
-    return await call(true, false);
-  } catch (headerErr) {
-    if (/not authorized|unauthorized/i.test(headerErr.message)) {
-      try {
-        return await call(false, true);
-      } catch {
-        throw headerErr;
-      }
-    }
-    throw headerErr;
-  }
-}
-
-/**
- * Descobre uma única vez qual modo de auth usar, com base na versão do Zabbix
- * (`apiinfo.version`, que não exige auth). Cacheado por config; revalida quando
- * a config muda. Se a versão não puder ser detectada, assume 'header' (canônico)
- * — o fallback do `rpc()` cobre o resto.
- */
-async function ensureAuthMode(cfg) {
-  const sig = configSig(cfg);
-  if (authMode && authModeSig === sig) return authMode;
-  let mode = 'header';
-  try {
-    const version = await rpc(cfg, 'apiinfo.version', {}, { needsAuth: false });
-    const m = String(version).match(/^(\d+)\.(\d+)/);
-    if (m) {
-      const major = Number(m[1]);
-      const minor = Number(m[2]);
-      // Header `Authorization: Bearer` só existe a partir do Zabbix 6.4.
-      mode = major > 6 || (major === 6 && minor >= 4) ? 'header' : 'body';
-    }
-  } catch {
-    // Sem versão detectável: mantém 'header' e deixa o fallback do rpc() agir.
-  }
-  authMode = mode;
-  authModeSig = sig;
-  return mode;
-}
-
-async function ensureSession(cfg) {
-  const sig = configSig(cfg);
-  if (sessionAuth && sessionConfigSig === sig) return sessionAuth;
-  if (!cfg.username || !cfg.password) {
-    throw new Error('Sem token e sem usuário/senha — configure ao menos um');
-  }
-  const auth = await rpc(
-    cfg,
-    'user.login',
-    { username: cfg.username, password: cfg.password },
-    { needsAuth: false },
-  );
-  sessionAuth = auth;
-  sessionConfigSig = sig;
-  return auth;
 }
 
 /** Test connection with apiinfo.version (does not require auth). */
@@ -305,9 +188,4 @@ export async function startScheduler(log) {
   setTimeout(() => tick(log), 30_000);
   timer = setInterval(() => tick(log), minutes * 60_000);
   log?.info?.(`zabbix scheduler running every ${minutes}min`);
-}
-
-export function invalidateSession() {
-  sessionAuth = null;
-  sessionConfigSig = null;
 }
