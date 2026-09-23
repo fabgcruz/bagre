@@ -9,7 +9,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:push": "prisma db push --accept-data-loss",
-    "import": "node src/import.js"
+    "import": "node src/import.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.654.0",

@@ -7,10 +7,12 @@
 
 import { prisma } from '../db.js';
 import { applyDiscoveries } from './discovery.js';
+import { rpc, invalidateSession } from './zabbix-client.js';
+
+// Reexporta para manter a API pública do módulo (as rotas importam daqui).
+export { invalidateSession };
 
 const IPV4_RE = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
-let sessionAuth = null;
-let sessionConfigSig = null;
 
 export async function getConfig() {
   let cfg = await prisma.zabbixConfig.findUnique({ where: { id: 1 } });
@@ -21,89 +23,6 @@ export async function getConfig() {
 export function isConfigured(cfg) {
   if (!cfg?.url) return false;
   return Boolean(cfg.apiToken || (cfg.username && cfg.password));
-}
-
-function configSig(cfg) {
-  return [cfg.url, cfg.apiToken, cfg.username, cfg.password].join('|');
-}
-
-/** Low-level JSON-RPC call. Adds auth automatically when needed. */
-async function rpc(cfg, method, params = {}, { needsAuth = true } = {}) {
-  if (!cfg.url) throw new Error('Zabbix URL não configurada');
-  const endpoint = cfg.url.replace(/\/$/, '') + '/api_jsonrpc.php';
-
-  let auth = null;
-  if (needsAuth) {
-    if (cfg.apiToken) {
-      auth = cfg.apiToken;
-    } else {
-      auth = await ensureSession(cfg);
-    }
-  }
-
-  async function call(useHeaderAuth, useBodyAuth) {
-    const headers = { 'Content-Type': 'application/json-rpc' };
-    if (auth && useHeaderAuth) headers.Authorization = `Bearer ${auth}`;
-    const body = {
-      jsonrpc: '2.0',
-      method,
-      params,
-      id: Date.now(),
-    };
-    if (auth && useBodyAuth) body.auth = auth;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`Zabbix HTTP ${res.status}`);
-    const json = await res.json();
-    if (json.error) {
-      throw new Error(`Zabbix RPC: ${json.error.message} ${json.error.data || ''}`.trim());
-    }
-    return json.result;
-  }
-
-  if (!auth) return call(false, false);
-
-  // Forma canônica desde o Zabbix 6.4: token no header `Authorization: Bearer`.
-  // No Zabbix 7.4 o campo `auth` do body foi removido, então esta é a única
-  // forma aceita.
-  try {
-    return await call(true, false);
-  } catch (headerErr) {
-    // Fallback para instalações antigas ou atrás de proxy/nginx que remove o
-    // header Authorization (a resposta vem como "Not authorized"): reenvia o
-    // token em `auth` no body. Aceito até o Zabbix 7.0 (deprecado); no 7.4 é
-    // rejeitado com "unexpected parameter auth".
-    if (/not authorized|unauthorized/i.test(headerErr.message)) {
-      try {
-        return await call(false, true);
-      } catch {
-        // Fallback também falhou (token inválido ou Zabbix 7.4 rejeitando o
-        // `auth`): re-lança o erro original do header, mais diagnóstico.
-        throw headerErr;
-      }
-    }
-    throw headerErr;
-  }
-}
-
-async function ensureSession(cfg) {
-  const sig = configSig(cfg);
-  if (sessionAuth && sessionConfigSig === sig) return sessionAuth;
-  if (!cfg.username || !cfg.password) {
-    throw new Error('Sem token e sem usuário/senha — configure ao menos um');
-  }
-  const auth = await rpc(
-    cfg,
-    'user.login',
-    { username: cfg.username, password: cfg.password },
-    { needsAuth: false },
-  );
-  sessionAuth = auth;
-  sessionConfigSig = sig;
-  return auth;
 }
 
 /** Test connection with apiinfo.version (does not require auth). */
@@ -269,9 +188,4 @@ export async function startScheduler(log) {
   setTimeout(() => tick(log), 30_000);
   timer = setInterval(() => tick(log), minutes * 60_000);
   log?.info?.(`zabbix scheduler running every ${minutes}min`);
-}
-
-export function invalidateSession() {
-  sessionAuth = null;
-  sessionConfigSig = null;
 }
