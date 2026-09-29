@@ -4,6 +4,7 @@
 import { prisma } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { audit, auditFromReq } from '../audit.js';
+import { resolveSsoRole } from '../auth-providers/role-sync.js';
 import { DEMO, redactForDemo } from '../demo-guard.js';
 import {
   getConfig,
@@ -195,7 +196,7 @@ export async function registerOidcRoutes(app) {
     let user = await prisma.user.findUnique({ where: { externalId: picked.sub } });
     if (!user) user = await prisma.user.findUnique({ where: { email: picked.email.toLowerCase() } });
 
-    const role = mapRole(cfg, picked.groups || []);
+    const mappedRole = mapRole(cfg, picked.groups || []);
 
     if (!user) {
       if (!cfg.autoProvision) {
@@ -209,7 +210,7 @@ export async function registerOidcRoutes(app) {
           authProvider: 'oidc',
           externalId: picked.sub,
           externalGroups: picked.groups,
-          role,
+          role: mappedRole,
           active: true,
         },
       });
@@ -221,6 +222,15 @@ export async function registerOidcRoutes(app) {
         after: { email: user.email, role: user.role, authProvider: 'oidc' },
       });
     } else {
+      // Reconcilia o papel a partir dos grupos, com anti-lockout do último admin (#129).
+      const effectiveRole = await resolveSsoRole({
+        user,
+        mappedRole,
+        cfg,
+        groups: picked.groups,
+        provider: 'oidc',
+        log: req.log,
+      });
       user = await prisma.user.update({
         where: { id: user.id },
         data: {
@@ -228,8 +238,7 @@ export async function registerOidcRoutes(app) {
           externalId: picked.sub,
           externalGroups: picked.groups,
           name: user.name || picked.name,
-          // role updates only if adminGroups are configured (otherwise let admin manage manually)
-          role: cfg.adminGroups?.length ? role : user.role,
+          role: effectiveRole,
           lastLoginAt: new Date(),
         },
       });

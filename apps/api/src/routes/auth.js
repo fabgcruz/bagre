@@ -4,6 +4,7 @@ import { audit } from '../audit.js';
 import { rateLimit } from '../rate-limit.js';
 import { DEMO, demoBlock } from '../demo-guard.js';
 import * as ldapProvider from '../auth-providers/ldap.js';
+import { resolveSsoRole } from '../auth-providers/role-sync.js';
 
 const TOKEN_TTL_MIN = 60 * 60 * 8; // 8h
 
@@ -54,6 +55,14 @@ export async function registerAuth(app) {
       await audit({ entity: 'user', entityId: user.id, action: 'create', actor: 'ldap', after: { email: user.email, role: user.role, authProvider: 'ldap' } });
       return user;
     }
+    // Reconcilia o papel a partir dos grupos, com anti-lockout do último admin (#129).
+    const effectiveRole = await resolveSsoRole({
+      user,
+      mappedRole: result.role,
+      cfg,
+      groups: result.groups,
+      provider: 'ldap',
+    });
     return prisma.user.update({
       where: { id: user.id },
       data: {
@@ -61,8 +70,7 @@ export async function registerAuth(app) {
         externalId: result.dn,
         externalGroups: result.groups,
         name: user.name || result.name,
-        // só sobrescreve o papel se há adminGroups configurados; senão o admin gerencia manual.
-        role: cfg.adminGroups?.length ? result.role : user.role,
+        role: effectiveRole,
       },
     });
   }
